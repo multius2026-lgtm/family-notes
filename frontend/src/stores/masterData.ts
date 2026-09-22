@@ -20,10 +20,12 @@ export const useMasterDataStore = defineStore("masterData", {
           supabase
             .from("income_sources")
             .select("id, name, icon, default_period_type, is_default, user_id")
+            .eq("user_id", user.id)
             .order("created_at", { ascending: true }),
           supabase
             .from("expense_categories")
             .select("id, name, icon, is_default, user_id")
+            .eq("user_id", user.id)
             .order("created_at", { ascending: true }),
         ]);
 
@@ -105,13 +107,17 @@ export const useMasterDataStore = defineStore("masterData", {
     },
 
     async updateIncomeSource(id: string, payload: { name: string; defaultPeriodType?: PeriodType }) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Tidak terautentikasi");
+
       const updates: any = { name: payload.name.trim() };
       if (payload.defaultPeriodType) updates.default_period_type = payload.defaultPeriodType;
 
       const { error } = await supabase
         .from("income_sources")
         .update(updates)
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id); // pastikan hanya bisa edit milik sendiri
       if (error) throw error;
 
       const item = this.incomeSources.find((s) => s.id === id);
@@ -122,7 +128,14 @@ export const useMasterDataStore = defineStore("masterData", {
     },
 
     async removeIncomeSource(id: string) {
-      const { error } = await supabase.from("income_sources").delete().eq("id", id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Tidak terautentikasi");
+
+      const { error } = await supabase
+        .from("income_sources")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id); // pastikan hanya bisa hapus milik sendiri
       if (error) throw error;
       this.incomeSources = this.incomeSources.filter((s) => s.id !== id);
     },
@@ -149,10 +162,14 @@ export const useMasterDataStore = defineStore("masterData", {
     },
 
     async updateExpenseCategory(id: string, payload: { name: string }) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Tidak terautentikasi");
+
       const { error } = await supabase
         .from("expense_categories")
         .update({ name: payload.name.trim() })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id); // pastikan hanya bisa edit milik sendiri
       if (error) throw error;
 
       const item = this.expenseCategories.find((c) => c.id === id);
@@ -162,7 +179,14 @@ export const useMasterDataStore = defineStore("masterData", {
     },
 
     async removeExpenseCategory(id: string) {
-      const { error } = await supabase.from("expense_categories").delete().eq("id", id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Tidak terautentikasi");
+
+      const { error } = await supabase
+        .from("expense_categories")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id); // pastikan hanya bisa hapus milik sendiri
       if (error) throw error;
       this.expenseCategories = this.expenseCategories.filter((c) => c.id !== id);
     },
