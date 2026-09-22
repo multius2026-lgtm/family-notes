@@ -94,16 +94,25 @@ const EXPENSE_ICONS: Record<string, string> = {
     <!-- Jumlah -->
     <div class="mb-4">
       <label class="form-label">Jumlah</label>
-      <div class="relative">
+      <div
+        class="flex items-center border-[1.5px] rounded-xl overflow-hidden transition-all focus-within:ring-2"
+        :style="{
+          borderColor: 'var(--line)',
+          background: 'var(--surface)',
+          '--tw-ring-color': 'var(--income-soft)',
+        }"
+        style="border-radius: 12px;"
+      >
         <span
-          class="absolute left-4 top-1/2 -translate-y-1/2 font-semibold text-ink-muted text-[15px]"
+          class="shrink-0 px-4 py-[13px] font-bold text-[15px] border-r-[1.5px]"
+          style="color: var(--ink-muted); border-color: var(--line); background: var(--surface-2);"
         >Rp</span>
         <input
           v-model.number="form.amount"
           type="number"
           inputmode="numeric"
           placeholder="0"
-          class="form-input pl-12 font-bold text-[18px]"
+          class="flex-1 px-4 py-[13px] font-bold text-[18px] outline-none bg-transparent"
           :style="{ color: isIncome ? 'var(--income-text)' : 'var(--expense-text)' }"
         />
       </div>
