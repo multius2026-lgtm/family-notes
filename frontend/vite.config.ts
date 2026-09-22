@@ -4,14 +4,16 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 export default defineConfig({
+  // "/" untuk custom domain, "/family-notes/" untuk GitHub Pages default URL
+  base: process.env.VITE_BASE_PATH || "/",
   plugins: [
     vue(),
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "Catatan Harian — Finance Tracker",
-        short_name: "CatatanHarian",
-        description: "Pencatat pemasukan & pengeluaran harian untuk pekerja lepas",
+        name: "Family Notes — Keuangan Keluarga",
+        short_name: "FamilyNotes",
+        description: "Pencatat pemasukan & pengeluaran harian untuk keluarga",
         theme_color: "#12201b",
         background_color: "#12201b",
         display: "standalone",
@@ -24,14 +26,9 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: /\/api\/summary/,
+            urlPattern: /supabase\.co\/rest/,
             handler: "NetworkFirst",
-            options: { cacheName: "summary-cache", expiration: { maxAgeSeconds: 3600 } },
-          },
-          {
-            urlPattern: /\/api\/transactions/,
-            handler: "NetworkFirst",
-            options: { cacheName: "transactions-cache", expiration: { maxAgeSeconds: 3600 } },
+            options: { cacheName: "supabase-cache", expiration: { maxAgeSeconds: 3600 } },
           },
         ],
       },
@@ -42,13 +39,5 @@ export default defineConfig({
   },
   server: {
     port: 3636,
-    proxy: {
-      // saat dev, request ke /api/* diteruskan ke backend Elysia di :3000
-      "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
-      },
-    },
   },
 });

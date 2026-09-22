@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from "vue";
+import { ref, onMounted, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useMasterDataStore } from "@/stores/masterData";
-import { useApi } from "@/composables/useApi";
 import { PERIOD_LABEL } from "@/types";
 import type { PeriodType } from "@/types";
 import ThemePicker from "@/components/ui/ThemePicker.vue";
@@ -11,7 +10,6 @@ import ThemePicker from "@/components/ui/ThemePicker.vue";
 const auth = useAuthStore();
 const master = useMasterDataStore();
 const router = useRouter();
-const { api } = useApi();
 
 const profile = reactive({ name: "", weeklyTarget: "" as string | number });
 const newSourceName = ref("");
@@ -19,23 +17,34 @@ const newSourcePeriod = ref<PeriodType>("daily");
 const newCatName = ref("");
 const saved = ref(false);
 
+function syncProfileFromAuth() {
+  if (auth.user) {
+    profile.name = auth.user.name || "";
+    profile.weeklyTarget = auth.user.weeklyTarget || "";
+  }
+}
+
+watch(() => auth.user, syncProfileFromAuth, { immediate: true });
+
 onMounted(async () => {
   await master.fetchAll();
-  const me = await api<{ name: string; weeklyTarget: string | null }>("/me");
-  profile.name = me.name;
-  profile.weeklyTarget = me.weeklyTarget || "";
+  syncProfileFromAuth();
 });
 
 let saveTimeout: ReturnType<typeof setTimeout>;
 function scheduleSave() {
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
-    await api("/me", {
-      method: "PATCH",
-      body: { name: profile.name, weeklyTarget: profile.weeklyTarget ? Number(profile.weeklyTarget) : null },
-    });
-    saved.value = true;
-    setTimeout(() => (saved.value = false), 1500);
+    try {
+      await auth.updateProfile({
+        name: profile.name,
+        weeklyTarget: profile.weeklyTarget ? Number(profile.weeklyTarget) : null,
+      });
+      saved.value = true;
+      setTimeout(() => (saved.value = false), 1500);
+    } catch (err) {
+      console.error("Gagal menyimpan profil:", err);
+    }
   }, 500);
 }
 

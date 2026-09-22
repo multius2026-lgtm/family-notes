@@ -100,8 +100,10 @@ async function load() {
 
   loadingTx.value = true;
   try {
-    const { api } = await import("@/composables/useApi").then(m => m.useApi());
-    monthlyTransactions.value = await api<Transaction[]>("/transactions", { query: { from, to } });
+    const { useTransactionsStore } = await import("@/stores/transactions");
+    const txStore = useTransactionsStore();
+    await txStore.fetchList({ from, to });
+    monthlyTransactions.value = txStore.items;
   } catch (err) {
     console.error("Gagal memuat transaksi laporan:", err);
     monthlyTransactions.value = [];
