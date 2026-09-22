@@ -144,7 +144,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
 </script>
 
 <template>
-  <div class="pb-28">
+  <div class="pb-28 md:pb-0 min-h-screen">
     <!-- Executive Top Bar -->
     <div
       class="px-5 pb-3 bg-surface border-b border-line sticky top-0 z-20"
@@ -192,9 +192,9 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
       </div>
     </div>
 
-    <div class="px-5 pt-4 space-y-4">
-      <!-- Financial Health Badge & Toggle Row -->
-      <div class="flex items-center justify-between">
+    <div class="px-5 pt-4 lg:px-8">
+      <!-- Financial Health Badge & Toggle Row (always full width) -->
+      <div class="flex items-center justify-between mb-4">
         <div
           class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-bold transition-all"
           :class="[financialHealth.bg, financialHealth.color]"
@@ -222,7 +222,12 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </div>
       </div>
 
-      <!-- Executive Hero Card -->
+      <!-- Responsive 2-col grid -->
+      <div class="db-cols">
+        <!-- ── LEFT COLUMN: stats & charts ── -->
+        <div class="space-y-4">
+
+          <!-- Executive Hero Card -->
       <div class="hero-card relative shadow-xl overflow-hidden fade-slide-up">
         <!-- Floating glass shapes -->
         <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
@@ -464,9 +469,14 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
             </div>
           </div>
         </div>
-      </div>
+        </div><!-- /donut card -->
 
-      <!-- Transaksi Terbaru -->
+        </div><!-- /left column -->
+
+        <!-- ── RIGHT COLUMN: activity & shortcuts ── -->
+        <div class="space-y-4">
+
+          <!-- Transaksi Terbaru -->
       <div class="space-y-2.5">
         <div class="flex items-center justify-between">
           <h2 class="text-[14px] font-bold text-ink">Aktivitas Terbaru</h2>
@@ -574,8 +584,12 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
             <span class="text-[10.5px] font-semibold text-ink truncate w-full">{{ cat.name }}</span>
           </div>
         </div>
-      </div>
-    </div>
+        </div><!-- /shortcuts section -->
+
+        </div><!-- /right column -->
+      </div><!-- /db-cols -->
+    </div><!-- /content wrapper -->
+
 
     <!-- Theme Modal -->
     <div

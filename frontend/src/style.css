@@ -118,9 +118,7 @@ body {
 }
 
 #app {
-  max-width: 480px;
-  margin: 0 auto;
-  position: relative;
+  min-height: 100%;
   background: var(--paper);
 }
 
@@ -418,4 +416,69 @@ body {
   background: var(--line);
   border-radius: 8px;
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ===================================================
+   RESPONSIVE APP SHELL
+   =================================================== */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+/* Mobile: has-nav adds bottom padding for dock */
+.app-main.has-nav {
+  padding-bottom: 96px;
+}
+
+/* Tablet (768px+): sidebar 72px, hide dock nav */
+@media (min-width: 768px) {
+  .app-main {
+    margin-left: 72px;
+  }
+  .app-main.has-nav {
+    padding-bottom: 0;
+  }
+  .dock-nav {
+    display: none !important;
+  }
+}
+
+/* Desktop (1024px+): sidebar expands to 240px */
+@media (min-width: 1024px) {
+  .app-main {
+    margin-left: 240px;
+  }
+}
+
+/* Content centering helper for forms / narrow views */
+@media (min-width: 768px) {
+  .page-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+/* Dashboard 2-column grid */
+.db-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .db-cols {
+    grid-template-columns: 1fr 360px;
+    gap: 1.5rem;
+    align-items: start;
+  }
 }
