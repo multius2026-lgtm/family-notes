@@ -8,12 +8,27 @@ const email = ref("");
 const password = ref("");
 const showPassword = ref(false);
 const error = ref("");
+const emailAlreadyExists = ref(false);
 const loading = ref(false);
 const auth = useAuthStore();
 const router = useRouter();
 
+function isEmailTakenError(msg: string) {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("already registered") ||
+    lower.includes("already been registered") ||
+    lower.includes("user already exists") ||
+    lower.includes("email address is already") ||
+    lower.includes("duplicate") ||
+    lower.includes("email sudah") ||
+    lower.includes("email_exists")
+  );
+}
+
 async function submit() {
   error.value = "";
+  emailAlreadyExists.value = false;
   if (password.value.length < 8) {
     error.value = "Password minimal harus 8 karakter.";
     return;
@@ -23,7 +38,12 @@ async function submit() {
     await auth.register({ name: name.value, email: email.value, password: password.value });
     router.push({ name: "dashboard" });
   } catch (e: any) {
-    error.value = e?.message || e?.data?.error || "Gagal mendaftar. Coba email lain atau periksa koneksi kamu.";
+    const msg = e?.message || e?.data?.error || "";
+    if (isEmailTakenError(msg)) {
+      emailAlreadyExists.value = true;
+    } else {
+      error.value = msg || "Gagal mendaftar. Periksa koneksi kamu dan coba lagi.";
+    }
   } finally {
     loading.value = false;
   }
@@ -111,6 +131,41 @@ async function submit() {
           <p class="mt-1 text-[11px] text-ink-muted">Minimal 8 karakter</p>
         </div>
 
+        <!-- Error: email sudah terdaftar -->
+        <div
+          v-if="emailAlreadyExists"
+          class="rounded-xl border p-4 space-y-2 text-[13px]"
+          style="background: #fff7ed; border-color: #fdba74; color: #c2410c;"
+        >
+          <p class="font-bold flex items-center gap-1.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Email sudah terdaftar
+          </p>
+          <p>Alamat email <strong>{{ email }}</strong> sudah memiliki akun.</p>
+          <div class="flex gap-2 pt-1">
+            <router-link
+              :to="{ name: 'login' }"
+              class="flex-1 text-center py-2 rounded-xl font-bold text-[12px] text-white shadow-sm"
+              style="background: var(--primary)"
+            >
+              Masuk ke akun ini
+            </router-link>
+            <button
+              type="button"
+              class="flex-1 py-2 rounded-xl font-bold text-[12px] border-2"
+              style="border-color: #fdba74; color: #c2410c; background: transparent"
+              @click="emailAlreadyExists = false; email = ''"
+            >
+              Pakai email lain
+            </button>
+          </div>
+        </div>
+
+        <!-- Error: kesalahan umum -->
         <p v-if="error" class="text-[13px] font-medium" style="color: var(--expense)">{{ error }}</p>
 
         <button
