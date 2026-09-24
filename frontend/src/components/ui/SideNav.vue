@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
@@ -9,7 +9,7 @@ const auth = useAuthStore();
 
 const initials = computed(() => {
   const name = auth.user?.name || auth.user?.email || "U";
-  return name.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase();
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 });
 
 const navItems = [
@@ -64,20 +64,21 @@ const navItems = [
         @click="router.push({ name: item.name })"
       >
         <span class="sn-item-bg"></span>
-        <svg
-          class="sn-icon"
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          v-html="item.icon"
-        />
+        <span class="sn-item-icon-wrap">
+          <svg
+            class="sn-icon"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            v-html="item.icon"
+          />
+        </span>
         <span class="sn-label">{{ item.label }}</span>
-        <!-- Tooltip for collapsed state -->
         <span class="sn-tip">{{ item.label }}</span>
       </button>
     </nav>
@@ -85,14 +86,15 @@ const navItems = [
     <!-- Add button -->
     <div class="sn-add-wrap">
       <button class="sn-add-btn" title="Tambah Transaksi" @click="router.push({ name: 'add-transaction' })">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 5v14"/><path d="M5 12h14"/>
-        </svg>
+        <span class="sn-add-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14"/><path d="M5 12h14"/>
+          </svg>
+        </span>
         <span class="sn-label">Tambah Transaksi</span>
       </button>
     </div>
 
-    <!-- Spacer -->
     <div class="sn-spacer"></div>
 
     <!-- User -->
@@ -107,64 +109,53 @@ const navItems = [
 </template>
 
 <style scoped>
-/* Hide on mobile, show on tablet+ */
-.sn {
-  display: none;
-}
+.sn { display: none; }
 
 @media (min-width: 768px) {
   .sn {
     display: flex;
     flex-direction: column;
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 0; left: 0;
     height: 100vh;
-    width: 72px;
+    width: 76px;
     background: var(--surface);
     border-right: 1px solid var(--line);
     z-index: 30;
-    padding: 16px 0;
+    padding: 20px 0 16px;
     overflow: hidden;
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.04);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+    box-shadow: 2px 0 20px rgba(0,0,0,0.05);
   }
 }
 
 @media (min-width: 1024px) {
-  .sn {
-    width: 240px;
-  }
+  .sn { width: 248px; box-shadow: none; }
 }
 
-/* Logo */
 .sn-logo {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 16px;
-  margin-bottom: 24px;
-  min-width: 240px; /* prevent text from wrapping during transition */
+  padding: 0 18px;
+  margin-bottom: 28px;
+  min-width: 248px;
 }
 
 .sn-logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 40px; height: 40px;
+  border-radius: 14px;
   background: var(--primary-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--primary-glow);
 }
 
 .sn-brand { overflow: hidden; }
 
 .sn-brand-name {
   display: block;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 15px; font-weight: 800;
   color: var(--ink);
   white-space: nowrap;
   letter-spacing: -0.3px;
@@ -172,28 +163,25 @@ const navItems = [
 
 .sn-brand-sub {
   display: block;
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: 10.5px; font-weight: 600;
   color: var(--ink-muted);
   white-space: nowrap;
 }
 
-/* Nav list */
 .sn-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 8px;
+  padding: 0 10px;
 }
 
-/* Nav item */
 .sn-item {
   position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 8px;
-  border-radius: 12px;
+  padding: 10px;
+  border-radius: 14px;
   border: none;
   background: none;
   cursor: pointer;
@@ -203,161 +191,137 @@ const navItems = [
   white-space: nowrap;
   min-width: 0;
 }
+.sn-item:hover { color: var(--ink); background: var(--surface-2); }
+.sn-item--active { color: var(--primary); background: var(--primary-light); }
 
-.sn-item:hover {
-  color: var(--ink);
-  background: var(--surface-2);
-}
-
-.sn-item--active {
-  color: var(--primary);
-  background: var(--primary-light);
-}
-
+.sn-item-bg { display: none; }
 .sn-item--active .sn-item-bg {
+  display: block;
   position: absolute;
-  left: 0;
-  top: 50%;
+  left: 0; top: 50%;
   transform: translateY(-50%);
-  width: 3px;
-  height: 60%;
+  width: 3px; height: 55%;
   border-radius: 0 3px 3px 0;
   background: var(--primary);
 }
 
+.sn-item-icon-wrap {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.sn-item--active .sn-item-icon-wrap { background: var(--primary-light); }
 .sn-icon { flex-shrink: 0; }
 
 .sn-label {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 14px; font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Hidden at 72px sidebar, shown at 240px */
-  opacity: 0;
-  width: 0;
+  opacity: 0; width: 0;
   transition: opacity 0.2s, width 0.2s;
 }
-
 @media (min-width: 1024px) {
-  .sn-label {
-    opacity: 1;
-    width: auto;
-  }
+  .sn-label { opacity: 1; width: auto; }
 }
 
-/* Tooltip (shows on hover when collapsed, md only) */
 .sn-tip {
   display: none;
   position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--ink);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 8px;
+  left: calc(100% + 14px);
+  top: 50%; transform: translateY(-50%);
+  background: var(--ink); color: #fff;
+  font-size: 12px; font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 10px;
   white-space: nowrap;
   pointer-events: none;
   z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 .sn-tip::before {
   content: '';
   position: absolute;
-  right: 100%;
-  top: 50%;
+  right: 100%; top: 50%;
   transform: translateY(-50%);
   border: 5px solid transparent;
   border-right-color: var(--ink);
 }
-
 @media (min-width: 768px) and (max-width: 1023px) {
-  .sn-item:hover .sn-tip {
-    display: block;
-  }
+  .sn-item:hover .sn-tip { display: block; }
 }
 
-/* Add button */
-.sn-add-wrap {
-  padding: 12px 8px;
-  margin-top: 8px;
-}
+.sn-add-wrap { padding: 12px 10px; margin-top: 8px; }
 
 .sn-add-btn {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 11px 8px;
-  border-radius: 12px;
+  padding: 11px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   background: var(--primary-gradient);
   color: white;
-  font-weight: 700;
-  font-size: 14px;
-  transition: opacity 0.2s, transform 0.15s;
+  font-weight: 800; font-size: 14px;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
   box-shadow: var(--shadow-btn);
   white-space: nowrap;
   justify-content: center;
 }
-.sn-add-btn:hover { opacity: 0.9; }
+.sn-add-btn:hover { opacity: 0.9; box-shadow: 0 8px 24px rgba(5,150,105,0.5); }
 .sn-add-btn:active { transform: scale(0.97); }
 
-@media (min-width: 1024px) {
-  .sn-add-btn {
-    justify-content: flex-start;
-    padding: 11px 14px;
-  }
+.sn-add-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 
-/* Spacer */
+@media (min-width: 1024px) {
+  .sn-add-btn { justify-content: flex-start; padding: 11px 14px; }
+}
+
 .sn-spacer { flex: 1; }
 
-/* User section */
 .sn-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 8px;
+  padding: 12px 10px;
   border-top: 1px solid var(--line);
   margin-top: 8px;
-  min-width: 240px;
+  min-width: 248px;
 }
 
 .sn-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px; height: 38px;
+  border-radius: 12px;
   background: var(--primary-gradient);
   color: white;
-  font-size: 13px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 13px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(5,150,105,0.3);
 }
 
 .sn-user-info { overflow: hidden; }
 
 .sn-user-name {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13px; font-weight: 700;
   color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin: 0;
 }
 
 .sn-user-email {
   font-size: 11px;
   color: var(--ink-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin: 0;
 }
 </style>

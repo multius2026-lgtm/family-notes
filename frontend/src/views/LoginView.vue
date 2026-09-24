@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
@@ -25,7 +25,7 @@ async function submit() {
   try {
     await auth.login({ email: email.value, password: password.value });
     router.push({ name: "dashboard" });
-  } catch (e: any) {
+  } catch (e) {
     error.value = e?.message || e?.data?.error || "Gagal masuk. Periksa kembali email dan password kamu.";
   } finally {
     loading.value = false;
@@ -49,7 +49,7 @@ async function handleForgotPassword() {
     const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, { redirectTo: redirectUrl });
     if (resetErr) throw resetErr;
     forgotSuccess.value = true;
-  } catch (err: any) {
+  } catch (err) {
     forgotError.value = err?.message || "Gagal mengirim link reset password.";
   } finally {
     forgotLoading.value = false;
@@ -59,29 +59,33 @@ async function handleForgotPassword() {
 
 <template>
   <div class="auth-page">
-    <!-- Background Blobs -->
-    <div class="auth-blob auth-blob-1"></div>
-    <div class="auth-blob auth-blob-2"></div>
+    <!-- Animated background -->
+    <div class="auth-bg">
+      <div class="auth-orb auth-orb-1"></div>
+      <div class="auth-orb auth-orb-2"></div>
+      <div class="auth-orb auth-orb-3"></div>
+    </div>
 
-    <div class="auth-card">
-      <!-- Header -->
+    <div class="auth-card fade-slide-up">
+      <!-- Logo & Header -->
       <div class="auth-header">
         <div class="auth-logo">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 18v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1"/>
             <polyline points="12,8 21,8 21,16 12,16" fill="rgba(255,255,255,0.3)"/>
             <circle cx="16.5" cy="12" r="1.5" fill="white"/>
           </svg>
         </div>
-        <h1 class="auth-title">Welcome Back</h1>
-        <p class="auth-subtitle">Masuk ke akun Family Notes kamu</p>
+        <div class="auth-badge">Family Notes</div>
+        <h1 class="auth-title">Selamat Datang</h1>
+        <p class="auth-subtitle">Masuk untuk mengelola keuangan keluargamu</p>
       </div>
 
       <!-- Form -->
       <form class="auth-form" @submit.prevent="submit">
         <!-- Email -->
         <div class="auth-field">
-          <label class="auth-label">Email Address</label>
+          <label class="auth-label">Email</label>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
@@ -101,7 +105,7 @@ async function handleForgotPassword() {
         <div class="auth-field">
           <div class="auth-label-row">
             <label class="auth-label">Password</label>
-            <button type="button" class="auth-link-sm" @click="openForgotModal">Forgot Password?</button>
+            <button type="button" class="auth-link-sm" @click="openForgotModal">Lupa password?</button>
           </div>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,25 +134,30 @@ async function handleForgotPassword() {
         </div>
 
         <!-- Error -->
-        <p v-if="error" class="auth-error">{{ error }}</p>
+        <div v-if="error" class="auth-error">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ error }}
+        </div>
 
         <!-- Submit -->
         <button id="btn-login" type="submit" :disabled="loading" class="auth-btn-primary">
           <span v-if="loading" class="auth-spinner"></span>
-          {{ loading ? "Memproses..." : "Sign In" }}
+          <span>{{ loading ? "Memproses..." : "Masuk" }}</span>
         </button>
       </form>
 
       <!-- Footer -->
       <p class="auth-footer">
-        Don't have an account?
-        <router-link :to="{ name: 'register' }" class="auth-link-bold">Sign Up</router-link>
+        Belum punya akun?
+        <router-link :to="{ name: 'register' }" class="auth-link-bold">Daftar sekarang</router-link>
       </p>
     </div>
 
-    <!-- Modal Lupa Password -->
+    <!-- Forgot Password Modal -->
     <div v-if="showForgotModal" class="auth-modal-overlay" @click.self="showForgotModal = false">
-      <div class="auth-modal">
+      <div class="auth-modal scale-in">
         <div class="auth-modal-header">
           <h3>Reset Password</h3>
           <button class="auth-modal-close" @click="showForgotModal = false">
@@ -159,12 +168,12 @@ async function handleForgotPassword() {
         <div v-if="forgotSuccess" class="auth-modal-success">
           <div class="auth-success-icon">✉️</div>
           <p class="font-bold text-[15px] mb-1">Link Terkirim!</p>
-          <p class="text-[13px] text-ink-muted">Petunjuk reset telah dikirim ke <strong>{{ forgotEmail }}</strong>. Cek inbox atau spam kamu.</p>
+          <p class="text-[13px] text-ink-muted">Cek inbox atau spam untuk <strong>{{ forgotEmail }}</strong>.</p>
           <button type="button" class="auth-btn-primary mt-4" @click="showForgotModal = false">Tutup</button>
         </div>
 
         <form v-else class="space-y-4" @submit.prevent="handleForgotPassword">
-          <p class="text-[13px] text-ink-muted">Masukkan email yang terdaftar, kami akan mengirimkan link reset password.</p>
+          <p class="text-[13px] text-ink-muted leading-relaxed">Masukkan email terdaftar, kami akan kirimkan link reset password.</p>
           <div class="auth-field">
             <label class="auth-label">Email Akun</label>
             <div class="auth-input-wrap">
@@ -178,7 +187,7 @@ async function handleForgotPassword() {
           <div class="flex gap-2">
             <button type="button" class="auth-btn-ghost flex-1" @click="showForgotModal = false">Batal</button>
             <button type="submit" :disabled="forgotLoading || !forgotEmail.trim()" class="auth-btn-primary flex-1 disabled:opacity-50">
-              {{ forgotLoading ? 'Mengirim...' : 'Kirim Link' }}
+              {{ forgotLoading ? "Mengirim..." : "Kirim Link" }}
             </button>
           </div>
         </form>
@@ -199,79 +208,103 @@ async function handleForgotPassword() {
   overflow: hidden;
 }
 
-/* Decorative blobs */
-.auth-blob {
+/* Animated orbs */
+.auth-bg { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+
+.auth-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.35;
-  pointer-events: none;
+  filter: blur(70px);
+  opacity: 0.25;
+  animation: float 8s ease-in-out infinite;
 }
-.auth-blob-1 {
-  width: 260px; height: 260px;
+.auth-orb-1 {
+  width: 300px; height: 300px;
   top: -80px; right: -60px;
   background: var(--primary);
+  animation-delay: 0s;
 }
-.auth-blob-2 {
-  width: 180px; height: 180px;
-  bottom: 40px; left: -60px;
+.auth-orb-2 {
+  width: 200px; height: 200px;
+  bottom: 60px; left: -60px;
   background: var(--primary-dark);
-  opacity: 0.2;
+  animation-delay: 2s;
+  opacity: 0.15;
+}
+.auth-orb-3 {
+  width: 160px; height: 160px;
+  bottom: -40px; right: 30%;
+  background: var(--income);
+  animation-delay: 4s;
+  opacity: 0.12;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
 }
 
 .auth-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   background: var(--surface);
-  border-radius: 24px;
+  border-radius: 28px;
   padding: 36px 28px 28px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+  box-shadow: 0 8px 48px rgba(0,0,0,0.10), 0 0 0 1px var(--line);
   position: relative;
   z-index: 1;
-  animation: authCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes authCardIn {
-  from { opacity: 0; transform: translateY(28px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.auth-header { text-align: center; margin-bottom: 28px; }
+.auth-header { text-align: center; margin-bottom: 32px; }
 
 .auth-logo {
-  width: 52px; height: 52px;
-  border-radius: 14px;
+  width: 56px; height: 56px;
+  border-radius: 18px;
   background: var(--primary-gradient);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  margin-bottom: 14px;
+  box-shadow: var(--primary-glow);
+}
+
+.auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary-light);
+  color: var(--primary);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
 }
 
 .auth-title {
-  font-size: 26px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 900;
   color: var(--ink);
   margin: 0 0 6px;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.7px;
 }
 
 .auth-subtitle {
   font-size: 14px;
   color: var(--ink-muted);
   margin: 0;
+  line-height: 1.5;
 }
 
-.auth-form { display: flex; flex-direction: column; gap: 16px; }
-
-.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-form { display: flex; flex-direction: column; gap: 18px; }
+.auth-field { display: flex; flex-direction: column; gap: 8px; }
 
 .auth-label {
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   color: var(--ink-muted);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 
@@ -290,18 +323,19 @@ async function handleForgotPassword() {
 .auth-input-icon {
   position: absolute;
   left: 14px;
-  color: var(--ink-muted);
+  color: var(--ink-light);
   pointer-events: none;
 }
 
 .auth-input {
   width: 100%;
-  padding: 13px 14px 13px 40px;
+  padding: 14px 14px 14px 42px;
   border: 1.5px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--surface-2);
   color: var(--ink);
   font-size: 14px;
+  font-weight: 500;
   font-family: inherit;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
@@ -310,9 +344,9 @@ async function handleForgotPassword() {
 .auth-input:focus {
   border-color: var(--primary);
   background: var(--surface);
-  box-shadow: 0 0 0 3px var(--income-soft);
+  box-shadow: 0 0 0 4px var(--primary-light);
 }
-.auth-input::placeholder { color: var(--ink-light); }
+.auth-input::placeholder { color: var(--ink-light); font-weight: 400; }
 
 .auth-eye-btn {
   position: absolute;
@@ -329,45 +363,51 @@ async function handleForgotPassword() {
 .auth-eye-btn:hover { color: var(--ink); }
 
 .auth-error {
-  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--expense);
+  color: var(--expense-text);
   background: var(--expense-soft);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 12px 14px;
   margin: 0;
 }
 
 .auth-btn-primary {
   width: 100%;
   padding: 15px;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--primary-gradient);
   color: white;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
   border: none;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
   box-shadow: var(--shadow-btn);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  letter-spacing: 0.2px;
 }
+.auth-btn-primary:hover { box-shadow: 0 8px 28px rgba(5, 150, 105, 0.5); }
 .auth-btn-primary:active { opacity: 0.9; transform: scale(0.98); }
-.auth-btn-primary:disabled { opacity: 0.6; }
+.auth-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .auth-btn-ghost {
   padding: 13px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1.5px solid var(--line);
   background: transparent;
   color: var(--ink-muted);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   cursor: pointer;
   transition: background 0.15s;
+  font-family: inherit;
 }
 .auth-btn-ghost:hover { background: var(--surface-2); }
 
@@ -380,11 +420,12 @@ async function handleForgotPassword() {
   cursor: pointer;
   padding: 0;
   transition: opacity 0.15s;
+  font-family: inherit;
 }
-.auth-link-sm:hover { opacity: 0.75; }
+.auth-link-sm:hover { opacity: 0.7; }
 
 .auth-link-bold {
-  font-weight: 700;
+  font-weight: 800;
   color: var(--primary);
   text-decoration: none;
 }
@@ -393,16 +434,17 @@ async function handleForgotPassword() {
   text-align: center;
   font-size: 14px;
   color: var(--ink-muted);
-  margin-top: 20px;
+  margin-top: 22px;
   margin-bottom: 0;
 }
 
 .auth-spinner {
   width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.35);
+  border: 2px solid rgba(255,255,255,0.3);
   border-top-color: white;
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -415,17 +457,17 @@ async function handleForgotPassword() {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
 }
 .auth-modal {
   background: var(--surface);
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 24px;
   width: 100%;
-  max-width: 360px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-  animation: authCardIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  max-width: 380px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  border: 1px solid var(--line);
 }
 .auth-modal-header {
   display: flex;
@@ -434,8 +476,7 @@ async function handleForgotPassword() {
   margin-bottom: 16px;
 }
 .auth-modal-header h3 {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 18px; font-weight: 800;
   color: var(--ink);
   margin: 0;
 }
@@ -444,14 +485,14 @@ async function handleForgotPassword() {
   border: none;
   cursor: pointer;
   color: var(--ink-muted);
-  width: 32px; height: 32px;
+  width: 34px; height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
-.auth-modal-close:hover { background: var(--line); }
+.auth-modal-close:hover { background: var(--line); color: var(--ink); }
 .auth-modal-success { text-align: center; padding: 8px 0; }
-.auth-success-icon { font-size: 40px; margin-bottom: 12px; }
+.auth-success-icon { font-size: 44px; margin-bottom: 12px; }
 </style>

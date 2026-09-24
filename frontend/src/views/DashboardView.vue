@@ -147,22 +147,22 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
   <div class="pb-28 md:pb-0 min-h-screen">
     <!-- Executive Top Bar -->
     <div
-      class="px-5 pb-3 bg-surface border-b border-line sticky top-0 z-20"
-      style="padding-top: calc(16px + env(safe-area-inset-top, 0px))"
+      class="px-5 pb-3 sticky top-0 z-20 border-b border-line"
+      style="padding-top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);"
     >
       <div class="flex items-center justify-between">
         <div>
           <div class="flex items-center gap-1.5 mb-0.5">
-            <span class="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">{{ todayLabel }}</span>
+            <span class="text-[10.5px] font-bold text-ink-muted uppercase tracking-widest">{{ todayLabel }}</span>
           </div>
-          <h1 class="text-[18px] font-extrabold text-ink tracking-tight">{{ greeting }}</h1>
+          <h1 class="text-[19px] font-black text-ink tracking-tight" style="letter-spacing: -0.5px;">{{ greeting }}</h1>
         </div>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-2">
           <!-- WhatsApp Quick Rekap Button -->
           <button
-            class="h-9 px-2.5 rounded-full flex items-center gap-1.5 text-[11.5px] font-bold text-white shadow-sm hover:opacity-95 active:scale-95 transition-all"
-            style="background: #25D366;"
+            class="h-9 px-3 rounded-full flex items-center gap-1.5 text-[11.5px] font-bold text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
+            style="background: linear-gradient(135deg, #25D366 0%, #1da851 100%);"
             title="Kirim Rekap WhatsApp"
             @click="showWhatsAppModal = true"
           >
@@ -176,7 +176,8 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
           <!-- Theme switcher -->
           <button
             id="btn-theme-quick"
-            class="w-9 h-9 rounded-full bg-surface-2 flex items-center justify-center shadow-sm text-ink-muted hover:text-ink transition-colors"
+            class="w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:text-ink transition-colors"
+            style="background: var(--surface-2); border: 1px solid var(--line);"
             title="Ganti Tema & Warna"
             @click="showThemeModal = true"
           >
@@ -193,10 +194,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
     </div>
 
     <div class="px-5 pt-4 lg:px-8">
-      <!-- Financial Health Badge & Toggle Row (always full width) -->
+      <!-- Financial Health Badge & Toggle Row -->
       <div class="flex items-center justify-between mb-4">
         <div
-          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-bold transition-all"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-bold transition-all shadow-sm"
           :class="[financialHealth.bg, financialHealth.color]"
         >
           <span>{{ financialHealth.dot }}</span>
@@ -204,16 +205,16 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </div>
 
         <!-- Periode Toggle: Bulan Ini vs Minggu Ini -->
-        <div class="p-0.5 bg-surface-2 rounded-xl border border-line flex items-center">
+        <div class="p-0.5 rounded-xl flex items-center" style="background: var(--surface-2); border: 1px solid var(--line);">
           <button
-            class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all"
+            class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
             :class="periodView === 'monthly' ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'"
             @click="periodView = 'monthly'"
           >
             Bulan Ini
           </button>
           <button
-            class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all"
+            class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
             :class="periodView === 'weekly' ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'"
             @click="periodView = 'weekly'"
           >
@@ -227,23 +228,25 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         <!-- ── LEFT COLUMN: stats & charts ── -->
         <div class="space-y-4">
 
-          <!-- Executive Hero Card -->
-      <div class="hero-card relative shadow-xl overflow-hidden fade-slide-up">
+      <!-- Executive Hero Card -->
+      <div class="hero-card relative overflow-hidden fade-slide-up">
         <!-- Floating glass shapes -->
-        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+        <div class="absolute -right-10 -top-10 w-36 h-36 rounded-full pointer-events-none" style="background: rgba(255,255,255,0.07); filter: blur(20px);"></div>
+        <div class="absolute bottom-0 left-0 w-24 h-24 rounded-full pointer-events-none" style="background: rgba(255,255,255,0.05); filter: blur(15px);"></div>
 
         <div class="flex items-start justify-between mb-1">
           <div>
-            <p class="text-white/80 text-[12.5px] font-medium tracking-wide">
-              Saldo Bersih ({{ periodView === 'monthly' ? monthLabel : '7 Hari Ini' }})
+            <p class="text-white/75 text-[12px] font-semibold tracking-wide mb-0.5">
+              Saldo Bersih &middot; {{ periodView === 'monthly' ? monthLabel : '7 Hari Ini' }}
             </p>
-            <h2 class="text-white text-[32px] font-black tracking-tight leading-tight">
+            <h2 class="text-white font-black leading-tight" style="font-size: 30px; letter-spacing: -1px;">
               {{ currentNet >= 0 ? '+' : '' }}{{ fmt(currentNet) }}
             </h2>
           </div>
 
           <button
-            class="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all backdrop-blur-md"
+            class="p-2 rounded-xl text-white transition-all"
+            style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);"
             title="Buka Laporan Lengkap"
             @click="router.push({ name: 'laporan' })"
           >
@@ -254,20 +257,20 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </div>
 
         <!-- Expense to Income Ratio Bar -->
-        <div class="mt-3 mb-4 bg-black/20 rounded-xl p-2.5 backdrop-blur-sm">
-          <div class="flex justify-between items-center text-[11px] text-white/90 font-medium mb-1.5">
+        <div class="mt-3 mb-4 rounded-xl p-3" style="background: rgba(0,0,0,0.15); backdrop-filter: blur(4px);">
+          <div class="flex justify-between items-center text-[11px] text-white/85 font-semibold mb-2">
             <span>Rasio Anggaran</span>
             <span>
               {{ expenseRatio }}% terpakai
-              <span v-if="savingsRate > 0" class="text-white/70">({{ savingsRate }}% tersimpan)</span>
+              <span v-if="savingsRate > 0" class="text-white/60">&nbsp;({{ savingsRate }}% tersimpan)</span>
             </span>
           </div>
-          <div class="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+          <div class="h-1.5 w-full rounded-full overflow-hidden" style="background: rgba(255,255,255,0.2);">
             <div
               class="h-full rounded-full transition-all duration-700"
               :style="{
                 width: `${Math.min(100, expenseRatio)}%`,
-                background: expenseRatio > 90 ? '#f05a5a' : expenseRatio > 70 ? '#f8a730' : '#ffffff'
+                background: expenseRatio > 90 ? '#ef4444' : expenseRatio > 70 ? '#f59e0b' : 'rgba(255,255,255,0.9)'
               }"
             ></div>
           </div>
@@ -277,36 +280,36 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         <div class="grid grid-cols-2 gap-2.5">
           <!-- Pemasukan -->
           <div class="metric-mini">
-            <div class="flex items-center gap-1.5 mb-1">
-              <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M7 17L17 7M17 7H7M17 7v10"/>
                 </svg>
               </div>
-              <span class="text-white/80 text-[11px] font-semibold">Pemasukan</span>
+              <span class="text-white/75 text-[11px] font-semibold">Pemasukan</span>
             </div>
-            <p class="text-white font-bold text-[15px]">{{ fmt(currentIncome) }}</p>
+            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ fmt(currentIncome) }}</p>
           </div>
 
           <!-- Pengeluaran -->
           <div class="metric-mini">
-            <div class="flex items-center gap-1.5 mb-1">
-              <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17 7L7 17M7 17H17M7 17V7"/>
                 </svg>
               </div>
-              <span class="text-white/80 text-[11px] font-semibold">Pengeluaran</span>
+              <span class="text-white/75 text-[11px] font-semibold">Pengeluaran</span>
             </div>
-            <p class="text-white font-bold text-[15px]">{{ fmt(currentExpense) }}</p>
+            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ fmt(currentExpense) }}</p>
           </div>
         </div>
       </div>
 
       <!-- Neo-Fintech Quick Actions Bar -->
-      <div class="grid grid-cols-4 gap-2.5">
+      <div class="grid grid-cols-4 gap-2">
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center"
+          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
           @click="router.push({ name: 'add-transaction', query: { type: 'income' } })"
         >
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: var(--income-soft); color: var(--income-text);">
@@ -318,7 +321,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
 
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center"
+          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
           @click="router.push({ name: 'add-transaction', query: { type: 'expense' } })"
         >
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: var(--expense-soft); color: var(--expense-text);">
@@ -330,10 +333,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
 
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center"
+          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
           @click="router.push({ name: 'laporan' })"
         >
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-blue-500/10 text-blue-600">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: rgba(37,99,235,0.1); color: #2563eb;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
             </svg>
@@ -342,10 +345,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
 
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center"
+          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
           @click="showWhatsAppModal = true"
         >
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-[#25D366]/15 text-[#25D366]">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: rgba(37,211,102,0.12); color: #25D366;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.072-2.18-.544-1.898-.787-3.119-2.73-3.214-2.857-.095-.128-.771-1.025-.771-1.954 0-.928.487-1.385.66-1.574.173-.189.378-.236.504-.236.126 0 .252.001.362.007.116.006.27-.044.423.323.16.38.544 1.325.592 1.422.048.096.08.209.016.335-.064.126-.096.205-.192.316-.096.112-.202.25-.288.336-.096.096-.197.2-.085.392.112.193.498.822 1.069 1.332.734.655 1.353.858 1.545.954.192.096.305.08.417-.048.112-.128.481-.56.609-.752.128-.192.256-.16.433-.096.176.064 1.122.529 1.314.625.192.096.32.144.368.224.048.08.048.464-.096.869z"/>
               <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.66 1.436 5.176L2 22l4.982-1.306A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.2c-1.637 0-3.167-.47-4.468-1.28l-.32-.2-2.956.776.789-2.883-.21-.334A8.163 8.163 0 0 1 3.8 12c0-4.521 3.679-8.2 8.2-8.2 4.522 0 8.2 3.679 8.2 8.2 0 4.522-3.678 8.2-8.2 8.2z"/>

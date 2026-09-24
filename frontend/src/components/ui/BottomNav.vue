@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
@@ -35,7 +35,6 @@ const navItems = [
 <template>
   <nav class="dock-nav">
     <div class="dock-inner">
-      <!-- Regular nav items (left of FAB) -->
       <template v-for="(item, i) in navItems" :key="item.id">
         <!-- Insert FAB after index 1 -->
         <button
@@ -45,7 +44,7 @@ const navItems = [
           aria-label="Tambah transaksi"
           @click="router.push({ name: 'add-transaction' })"
         >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14"/><path d="M5 12h14"/>
           </svg>
         </button>
@@ -94,13 +93,15 @@ const navItems = [
   pointer-events: all;
   max-width: 480px;
   width: 100%;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-border);
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
   padding: 6px 8px 8px;
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-nav);
   gap: 2px;
 }
 
@@ -117,24 +118,23 @@ const navItems = [
   padding: 0;
   position: relative;
   min-width: 48px;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .dock-btn--active {
   transform: translateY(-6px);
 }
 
-/* Bubble indicator behind icon when active */
+/* Bubble indicator */
 .dock-bubble {
   position: absolute;
   top: -2px;
   left: 50%;
   transform: translateX(-50%) scale(0);
-  width: 44px;
-  height: 44px;
+  width: 46px; height: 46px;
   border-radius: 50%;
   background: var(--primary-light);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
   opacity: 0;
   z-index: 0;
 }
@@ -149,22 +149,21 @@ const navItems = [
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
 }
 
 .dock-label {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   transition: color 0.2s;
   position: relative;
   z-index: 1;
+  letter-spacing: 0.1px;
 }
 
 /* FAB */
 .dock-fab {
-  width: 54px;
-  height: 54px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   background: var(--primary-gradient);
   color: white;
@@ -175,9 +174,9 @@ const navItems = [
   box-shadow: var(--shadow-btn);
   border: none;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
   flex-shrink: 0;
 }
-.dock-fab:hover { transform: scale(1.08); }
-.dock-fab:active { transform: scale(0.93); box-shadow: 0 2px 8px rgba(45,190,126,0.3); }
+.dock-fab:hover { transform: scale(1.1); box-shadow: 0 8px 24px rgba(5,150,105,0.5); }
+.dock-fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(5,150,105,0.3); }
 </style>
