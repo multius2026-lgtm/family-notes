@@ -16,10 +16,26 @@ const router = createRouter({
   ],
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore();
-  if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: "login" };
-  if (to.meta.guestOnly && auth.isAuthenticated) return { name: "dashboard" };
+  if (!auth.isInitialized) {
+    await auth.init();
+  }
+
+  // Jika halaman butuh login tapi user belum login
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return { name: "login", query: { redirect: to.fullPath } };
+  }
+
+  // Jika halaman khusus tamu (login/register) tapi user sudah login
+  if (to.meta.guestOnly && auth.isAuthenticated) {
+    const redirect = (to.query.redirect as string) || null;
+    if (redirect && redirect !== "/" && !redirect.startsWith("/login")) {
+      return redirect;
+    }
+    return { name: "dashboard" };
+  }
+
   return true;
 });
 

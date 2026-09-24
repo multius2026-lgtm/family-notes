@@ -12,10 +12,12 @@ useTheme().initTheme();
 const app = createApp(App);
 const pinia = createPinia();
 app.use(pinia);
-app.use(router);
 
-// Init Supabase auth session sebelum mount
+// Init Supabase auth session terlebih dahulu, lalu pasang router & mount app
 const auth = useAuthStore();
-auth.init().then(() => {
-  app.mount("#app");
+auth.init().finally(() => {
+  app.use(router);
+  router.isReady().then(() => {
+    app.mount("#app");
+  });
 });

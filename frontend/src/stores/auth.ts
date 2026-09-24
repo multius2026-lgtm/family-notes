@@ -5,12 +5,16 @@ import type { User } from "@/types";
 interface AuthState {
   user: User | null;
   session: any | null;
+  isInitialized: boolean;
 }
+
+let initPromise: Promise<void> | null = null;
 
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
     user: null,
     session: null,
+    isInitialized: false,
   }),
 
   getters: {
@@ -19,22 +23,34 @@ export const useAuthStore = defineStore("auth", {
 
   actions: {
     async init() {
-      // Cek session yang tersimpan saat startup
-      const { data } = await supabase.auth.getSession();
-      this.session = data.session;
-      if (data.session?.user) {
-        await this._loadUserProfile(data.session.user.id);
-      }
+      if (this.isInitialized) return;
+      if (initPromise) return initPromise;
 
-      // Dengarkan perubahan auth state
-      supabase.auth.onAuthStateChange(async (_event, session) => {
-        this.session = session;
-        if (session?.user) {
-          await this._loadUserProfile(session.user.id);
-        } else {
-          this.user = null;
+      initPromise = (async () => {
+        try {
+          // Cek session yang tersimpan saat startup
+          const { data } = await supabase.auth.getSession();
+          this.session = data.session;
+          if (data.session?.user) {
+            await this._loadUserProfile(data.session.user.id);
+          }
+
+          // Dengarkan perubahan auth state
+          supabase.auth.onAuthStateChange(async (_event, session) => {
+            this.session = session;
+            if (session?.user) {
+              await this._loadUserProfile(session.user.id);
+            } else {
+              this.user = null;
+            }
+          });
+        } finally {
+          this.isInitialized = true;
+          initPromise = null;
         }
-      });
+      })();
+
+      return initPromise;
     },
 
     async _loadUserProfile(userId: string) {

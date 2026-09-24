@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -11,6 +11,7 @@ const error = ref("");
 const loading = ref(false);
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 // Lupa Password
 const showForgotModal = ref(false);
@@ -24,7 +25,12 @@ async function submit() {
   loading.value = true;
   try {
     await auth.login({ email: email.value, password: password.value });
-    router.push({ name: "dashboard" });
+    const redirect = (route.query.redirect as string) || null;
+    if (redirect && redirect !== "/" && !redirect.startsWith("/login")) {
+      router.push(redirect);
+    } else {
+      router.push({ name: "dashboard" });
+    }
   } catch (e: any) {
     error.value = e?.message || e?.data?.error || "Gagal masuk. Periksa kembali email dan password kamu.";
   } finally {
