@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
@@ -25,7 +25,7 @@ async function submit() {
   try {
     await auth.login({ email: email.value, password: password.value });
     router.push({ name: "dashboard" });
-  } catch (e) {
+  } catch (e: any) {
     error.value = e?.message || e?.data?.error || "Gagal masuk. Periksa kembali email dan password kamu.";
   } finally {
     loading.value = false;
@@ -49,7 +49,7 @@ async function handleForgotPassword() {
     const { error: resetErr } = await supabase.auth.resetPasswordForEmail(targetEmail, { redirectTo: redirectUrl });
     if (resetErr) throw resetErr;
     forgotSuccess.value = true;
-  } catch (err) {
+  } catch (err: any) {
     forgotError.value = err?.message || "Gagal mengirim link reset password.";
   } finally {
     forgotLoading.value = false;
