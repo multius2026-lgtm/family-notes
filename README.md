@@ -1,56 +1,82 @@
-# Catatan Harian — Frontend
+# Catatan Harian — Pencatat Keuangan Harian untuk Gig Worker
 
-PWA mobile-first untuk mencatat pemasukan & pengeluaran harian, dibangun
-dengan Vue 3 (Composition API + `<script setup>`), TypeScript, Pinia,
-Tailwind CSS, dan Chart.js.
+Aplikasi web mobile (PWA) untuk mencatat pemasukan & pengeluaran harian bagi
+driver ojol, freelancer, dan pedagang kecil dengan penghasilan tidak tetap —
+termasuk yang penghasilannya campuran **harian, mingguan, dan bulanan**.
 
-## Menjalankan secara lokal
+Proyek ini terdiri dari dua bagian, masing-masing punya README sendiri:
 
-Pastikan backend sudah jalan dulu (lihat `../backend/README.md`).
+- **`backend/`** — API Bun.js + Elysia + Drizzle ORM + PostgreSQL
+- **`frontend/`** — PWA Vue 3 + TypeScript + Pinia + Tailwind CSS + Chart.js
+
+## Kenapa ada dukungan periode harian/mingguan/bulanan?
+
+Gig worker jarang punya pola pemasukan yang seragam:
+- Driver ojol biasanya dapat pemasukan **harian**.
+- Proyek freelance sering dibayar **mingguan** sekali jadi.
+- Sebagian punya pemasukan tambahan **bulanan** (retainer, gaji paruh waktu).
+
+Kalau semua nilai transaksi dianggap "pemasukan hari itu", pemasukan bulanan
+3 juta akan terlihat seperti lonjakan raksasa di satu hari, membuat rata-rata
+harian menyesatkan. Karena itu setiap transaksi pemasukan punya field
+`periodType` (`daily` / `weekly` / `monthly`):
+
+- Nilai transaksi tetap dicatat apa adanya (uang yang benar-benar diterima
+  pada tanggal itu) — dipakai untuk laporan "berapa yang masuk hari ini".
+- Untuk perhitungan rata-rata & tren, nilai mingguan dibagi 7 dan nilai
+  bulanan dibagi 30 terlebih dahulu ("setara harian") — dipakai untuk
+  "berapa perkiraan pemasukan rata-rata per hari".
+
+Lihat `backend/src/utils/period.ts` untuk implementasinya, dan
+`frontend/src/components/transactions/TransactionForm.vue` untuk UI
+pemilihan periode saat menambah transaksi.
+
+## Menjalankan proyek secara lokal
 
 ```bash
-bun install       # atau npm install / pnpm install
-bun run dev       # jalan di http://localhost:5173
+# Terminal 1 — backend
+cd backend
+bun install
+docker compose up -d        # Postgres lokal
+cp .env.example .env        # lalu isi secret JWT
+bun run db:generate && bun run db:migrate
+bun run dev                 # http://localhost:3000
+
+# Terminal 2 — frontend
+cd frontend
+bun install
+bun run dev                 # http://localhost:5173
 ```
 
-Saat development, request ke `/api/*` otomatis diteruskan ke backend
-`http://localhost:3000` lewat proxy di `vite.config.ts`.
+Buka `http://localhost:5173` di browser HP (atau mode responsive di
+desktop) untuk mencoba tampilan mobile-first-nya.
 
-Build production:
+## Status fitur vs rencana implementasi awal
 
-```bash
-bun run build     # hasil di dist/
-bun run preview   # cek hasil build secara lokal
-```
+| Fitur (MVP — Fase 1) | Status |
+|---|---|
+| Register/login email + password | ✅ |
+| Input pemasukan (pilih sumber) | ✅ (+ periode harian/mingguan/bulanan) |
+| Input pengeluaran (pilih kategori) | ✅ |
+| Riwayat transaksi + filter | ✅ |
+| Edit & hapus transaksi | ✅ |
+| Dashboard: total hari ini, rata-rata 7 hari, tren | ✅ |
+| Alert pengeluaran > pemasukan mingguan | ✅ |
+| PWA installable | ✅ (manifest + service worker dasar) |
+| Responsive mobile-first | ✅ |
+| Donut chart breakdown kategori (Fase 2) | Endpoint backend sudah ada (`/summary/by-category`), komponen `CategoryDonutChart.vue` sudah ada — tinggal dipasang di view yang diinginkan |
+| Export laporan PDF/Excel (Fase 2) | Belum |
+| Notifikasi push (Fase 2) | Belum |
+| Mode offline penuh (Fase 2) | Belum — service worker baru cache dasar, belum queue transaksi offline |
+| Multi-currency, tier premium (Fase 2/3) | Belum |
 
-## Fitur yang sudah diimplementasikan (MVP)
+## Catatan sebelum production
 
-- Register/login dengan email + password (JWT, auto-refresh token)
-- Tambah pemasukan (pilih sumber) & pengeluaran (pilih kategori)
-- **Periode pemasukan (harian/mingguan/bulanan)** — lihat `TransactionForm.vue`.
-  Ini penting untuk gig worker: pemasukan yang diterima mingguan/bulanan
-  ditandai apa adanya, lalu backend menormalisasinya jadi "setara harian"
-  untuk perhitungan rata-rata di dashboard, supaya tidak menyesatkan.
-- Riwayat transaksi dengan filter periode (7/30 hari/semua) & tipe
-- Edit & hapus transaksi
-- Dashboard: total hari ini, rata-rata 7 hari, grafik tren 14 hari, alert
-  kalau pengeluaran mingguan melebihi pemasukan, progress vs target mingguan
-- Pengaturan: profil, target mingguan, kelola sumber pemasukan (dengan
-  periode default per sumber) & kategori pengeluaran custom
-- PWA installable (manifest + service worker basic caching via
-  `vite-plugin-pwa`)
-- Mobile-first, aman untuk notch/safe-area, bottom navigation ala aplikasi native
-
-## Struktur
-
-Lihat `src/views` untuk tiap halaman, `src/components` untuk komponen yang
-dipakai ulang (chart, kartu metrik, form transaksi, dsb), `src/stores` untuk
-state management Pinia, dan `src/composables/useApi.ts` untuk wrapper HTTP
-dengan auto-refresh token.
-
-## Belum diimplementasikan (lihat rencana Fase 2/3)
-
-- Mode offline penuh (queue transaksi saat tidak ada koneksi)
-- Export laporan PDF/Excel
-- Notifikasi push
-- Perbandingan anonim antar pengguna
+- Ganti `JWT_ACCESS_SECRET` dan `JWT_REFRESH_SECRET` di `.env` backend dengan
+  string acak yang panjang — jangan pakai nilai contoh.
+- Tambahkan rate limiting di endpoint `/auth/login` (belum ada di scaffold ini).
+- Siapkan ikon PWA sungguhan di `frontend/public/icons/` (lihat README di
+  folder tersebut) sebelum build production.
+- Kode ini belum pernah dijalankan/di-test end-to-end di lingkungan pembuat
+  (sandbox tanpa akses jaringan) — jalankan `bun install` lalu ikikuti langkah
+  di atas, dan kabari kalau ada error supaya bisa langsung diperbaiki.
