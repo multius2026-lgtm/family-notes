@@ -2,6 +2,16 @@ import { defineStore } from "pinia";
 import { supabase } from "@/lib/supabase";
 import type { Transaction, PeriodType, TransactionType, ReceiptItem } from "@/types";
 import { useWalletsStore } from "./wallets";
+import { useSummaryStore } from "./summary";
+
+function refreshDashboardSummary() {
+  const summary = useSummaryStore();
+  const now = new Date();
+  void Promise.all([
+    summary.fetchDashboard(),
+    summary.fetchMonthly(now.getFullYear(), now.getMonth() + 1),
+  ]);
+}
 
 interface NewTransactionInput {
   type: TransactionType;
@@ -155,6 +165,7 @@ export const useTransactionsStore = defineStore("transactions", {
 
       const row = mapRow(data);
       this.items.unshift(row);
+      refreshDashboardSummary();
       return row;
     },
 
@@ -191,6 +202,7 @@ export const useTransactionsStore = defineStore("transactions", {
       const row = mapRow(data);
       const idx = this.items.findIndex((t) => t.id === id);
       if (idx !== -1) this.items[idx] = row;
+      refreshDashboardSummary();
       return row;
     },
 
@@ -216,6 +228,7 @@ export const useTransactionsStore = defineStore("transactions", {
       }
 
       this.items = this.items.filter((t) => t.id !== id);
+      refreshDashboardSummary();
     },
   },
 });

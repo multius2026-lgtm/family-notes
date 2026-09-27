@@ -54,7 +54,7 @@ const categoryIconComponent = computed(() => {
 
 <template>
   <div
-    class="tx-row flex items-center gap-3 py-3 border-b border-line-soft hover:bg-bg/60 cursor-pointer transition-colors px-1 select-none"
+    class="tx-row flex items-center gap-3 py-3.5 border-b border-line-soft hover:bg-bg cursor-pointer transition-colors px-1 select-none rounded-[12px]"
     @click="emit('click', tx)"
   >
     <!-- Ikon kategori dalam kotak 38x38px, radius 12px, background tint sesuai jenis per Design System -->
@@ -123,7 +123,8 @@ const categoryIconComponent = computed(() => {
     <!-- Nominal expense: warna expense, prefix - | Nominal income: warna income, prefix + -->
     <div class="text-right flex-shrink-0">
       <p
-        class="text-[13.5px] font-[700] leading-tight font-ui"
+        class="text-[13.5px] font-[700] leading-tight font-display"
+        style="font-style: italic;"
         :style="{
           color: isTransfer
             ? 'var(--pine)'

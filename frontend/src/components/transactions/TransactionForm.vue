@@ -5,6 +5,7 @@ import { useWalletsStore } from "@/stores/wallets";
 import CategoryPicker from "./CategoryPicker.vue";
 import type { PeriodType, TransactionType, ReceiptItem } from "@/types";
 import { PERIOD_LABEL } from "@/types";
+import RupiahInput from "@/components/ui/RupiahInput.vue";
 import { useCurrency } from "@/composables/useCurrency";
 
 export interface TxFormState {
@@ -151,11 +152,14 @@ const EXPENSE_ICONS: Record<string, string> = {
     <!-- ═══ Pilihan Dompet (Untuk Pemasukan / Pengeluaran) ═══ -->
     <div v-if="!isTransfer" class="mb-4">
       <label class="form-label flex items-center justify-between">
-        <span>Akun / Dompet</span>
+        <span>{{ isIncome ? 'Masuk ke akun / dompet' : 'Keluar dari akun / dompet' }}</span>
         <span v-if="form.walletId" class="text-[11px] font-semibold text-primary">
           Saldo: {{ fmt(walletsStore.items.find(w => w.id === form.walletId)?.balance || 0) }}
         </span>
       </label>
+      <p class="text-[11px] text-ink-muted mb-2">
+        Pilih akun tujuan transaksi. Total saldo beranda adalah jumlah seluruh akun.
+      </p>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
           v-for="w in walletsStore.items"
@@ -165,7 +169,10 @@ const EXPENSE_ICONS: Record<string, string> = {
           :class="{ 'wallet-selected': form.walletId === w.id }"
           @click="form.walletId = w.id"
         >
-          <span class="text-base">{{ w.icon || '💵' }}</span>
+          <span
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-base text-white shrink-0"
+            :style="{ background: w.color || '#10b981' }"
+          >{{ w.icon || '💵' }}</span>
           <div class="text-left min-w-0 flex-1">
             <p class="text-[12px] font-bold truncate leading-tight">{{ w.name }}</p>
             <p class="text-[10px] text-ink-muted truncate">{{ fmt(w.balance) }}</p>
@@ -257,15 +264,10 @@ const EXPENSE_ICONS: Record<string, string> = {
           class="shrink-0 px-4 py-[13px] font-bold text-[15px] border-r-[1.5px]"
           style="color: var(--ink-muted); border-color: var(--line); background: var(--surface-2);"
         >Rp</span>
-        <input
-          v-model.number="form.amount"
-          type="number"
-          inputmode="numeric"
+        <RupiahInput
+          v-model="form.amount"
           placeholder="0"
-          class="flex-1 px-4 py-[13px] font-bold text-[18px] outline-none bg-transparent"
-          :style="{
-            color: isIncome ? 'var(--income-text)' : isExpense ? 'var(--expense-text)' : 'var(--primary)'
-          }"
+          input-class="flex-1 px-4 py-[13px] font-bold text-[18px] outline-none bg-transparent"
         />
       </div>
     </div>

@@ -127,7 +127,7 @@ const navItems = [
     padding: 20px 0 16px;
     overflow: hidden;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
-    box-shadow: 2px 0 20px rgba(0,0,0,0.05);
+    box-shadow: 4px 0 32px rgba(18,25,21,0.04);
   }
 }
 

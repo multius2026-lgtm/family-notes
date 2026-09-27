@@ -40,9 +40,10 @@
   --r-sheet: 26px;
 
   /* Elevation */
-  --shadow-card: 0 1px 2px rgba(18,25,21,.04), 0 6px 20px rgba(18,25,21,.06);
+  --shadow-card: 0 1px 2px rgba(18,25,21,.04), 0 8px 24px rgba(18,25,21,.05);
+  --shadow-card-hover: 0 8px 28px rgba(18,25,21,.08);
   --shadow-btn: 0 4px 14px rgba(18, 59, 49, 0.22);
-  --shadow-nav: 0 -2px 20px rgba(18, 25, 21, 0.05);
+  --shadow-nav: 0 12px 40px rgba(18, 25, 21, 0.12);
 
   /* Legacy / helper aliases */
   --paper: var(--bg);
@@ -182,6 +183,7 @@ html.dark:not([data-theme="dark-blue"]):not([data-theme="dark-purple"]) {
   --primary-gradient: linear-gradient(155deg, #1C5445 0%, #2B7A66 100%);
 
   --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.4);
+  --shadow-card-hover: 0 10px 32px rgba(0,0,0,0.45);
   --glass-bg: rgba(20, 31, 26, 0.88);
   --glass-border: var(--line);
 }
@@ -265,13 +267,17 @@ html, body, #app {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 500px at 8% -10%, color-mix(in srgb, var(--pine) 8%, transparent), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--gold) 7%, transparent), transparent 50%),
+    var(--bg);
   color: var(--ink);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  letter-spacing: -0.01em;
 }
 
 /* Interactive elements feedback */
@@ -303,13 +309,14 @@ button:active {
 /* ── Cards ── */
 .card {
   background: var(--surface);
-  border-radius: 20px;
+  border-radius: 22px;
   box-shadow: var(--shadow-card);
   border: 1px solid var(--line);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.2s;
 }
 .card:hover {
   box-shadow: var(--shadow-card-hover);
+  border-color: color-mix(in srgb, var(--pine) 18%, var(--line));
 }
 
 /* Glass card */
@@ -324,12 +331,13 @@ button:active {
 /* ── Hero gradient card ── */
 .hero-card {
   background: var(--primary-gradient);
-  border-radius: 24px;
+  border-radius: 28px;
   color: white;
-  padding: 24px 20px 28px;
+  padding: 22px 20px 22px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--primary-glow);
+  isolation: isolate;
 }
 
 .hero-card::before {
@@ -358,13 +366,14 @@ button:active {
 
 /* Metric mini cards inside hero */
 .metric-mini {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.12);
   border-radius: 16px;
-  padding: 12px 14px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.2);
+  padding: 12px 11px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.16);
   flex: 1;
+  min-width: 0;
 }
 
 /* ── Section title ── */
@@ -671,9 +680,9 @@ button:active {
   min-height: 100vh;
 }
 
-/* Mobile: has-nav adds bottom padding for dock */
+/* Mobile: has-nav adds bottom padding for floating dock */
 .app-main.has-nav {
-  padding-bottom: 96px;
+  padding-bottom: 108px;
 }
 
 /* Tablet (768px+): sidebar 76px, hide dock nav */

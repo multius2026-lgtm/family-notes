@@ -86,24 +86,25 @@ const navItems = [
   display: flex;
   justify-content: center;
   z-index: 40;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding: 0 14px calc(10px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
 .dock-inner {
   pointer-events: all;
-  max-width: 480px;
+  max-width: 440px;
   width: 100%;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-top: 1px solid var(--glass-border);
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  padding: 6px 8px 8px;
+  padding: 8px 10px 10px;
   box-shadow: var(--shadow-nav);
   gap: 2px;
+  border-radius: 28px;
 }
 
 /* Regular nav button */
@@ -123,7 +124,7 @@ const navItems = [
 }
 
 .dock-btn--active {
-  transform: translateY(-6px);
+  transform: none;
 }
 
 /* Bubble indicator */

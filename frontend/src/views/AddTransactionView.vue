@@ -149,6 +149,9 @@ async function save() {
       errorMsg.value = "Dompet asal dan tujuan tidak boleh sama.";
       return;
     }
+  } else if (!form.walletId) {
+    errorMsg.value = "Pilih akun/dompet yang akan digunakan.";
+    return;
   }
 
   saving.value = true;

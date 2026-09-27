@@ -7,6 +7,7 @@ import { useWalletsStore } from "@/stores/wallets";
 import { useCurrency } from "@/composables/useCurrency";
 import { getCategoryIconComponent } from "@/composables/useCategoryIcon";
 import ReceiptScanner from "@/components/transactions/ReceiptScanner.vue";
+import RupiahInput from "@/components/ui/RupiahInput.vue";
 import type { TransactionType, PeriodType, ReceiptItem } from "@/types";
 import {
   X,
@@ -264,6 +265,9 @@ async function handleSubmit() {
       errorMsg.value = "Dompet asal dan dompet tujuan tidak boleh sama.";
       return;
     }
+  } else if (!form.walletId) {
+    errorMsg.value = "Pilih akun/dompet yang akan digunakan.";
+    return;
   }
 
   saving.value = true;
@@ -417,12 +421,10 @@ async function handleDelete() {
 
               <div class="flex items-center gap-2">
                 <span class="text-xl font-[500] text-ink-soft font-display italic">Rp</span>
-                <input
-                  v-model.number="form.amount"
-                  type="number"
-                  inputmode="numeric"
+                <RupiahInput
+                  v-model="form.amount"
                   placeholder="0"
-                  class="w-full bg-transparent text-[28px] sm:text-[32px] font-[500] font-display text-ink outline-none tracking-tight placeholder:text-ink-faint"
+                  input-class="w-full bg-transparent text-[28px] sm:text-[32px] font-[500] font-display text-ink outline-none tracking-tight placeholder:text-ink-faint"
                 />
               </div>
 
@@ -478,10 +480,16 @@ async function handleDelete() {
 
             <!-- Dompet Selection -->
             <div>
-              <label class="text-[11.5px] font-[700] text-ink-soft uppercase tracking-wider block mb-1.5">
-                {{ form.type === 'transfer' ? 'Dari Dompet (Sumber Saldo)' : 'Akun / Dompet' }}
+              <label class="text-[11.5px] font-[700] text-ink-soft uppercase tracking-wider block mb-1">
+                {{ form.type === 'transfer' ? 'Dari Dompet (Sumber Saldo)' : form.type === 'income' ? 'Masuk ke akun / dompet' : 'Keluar dari akun / dompet' }}
               </label>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <p class="text-[11px] text-ink-muted mb-2 leading-snug">
+                Wajib dipilih agar saldo akun terbarui. Kartu Total Saldo di beranda adalah jumlah semua akun, bukan akun yang dipilih di sini.
+              </p>
+              <div v-if="walletsStore.items.length === 0" class="text-[12px] text-ink-muted">
+                Belum ada akun. Tambahkan dompet di beranda terlebih dahulu.
+              </div>
+              <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   v-for="w in walletsStore.items"
                   :key="w.id"
@@ -490,7 +498,10 @@ async function handleDelete() {
                   :class="form.walletId === w.id ? 'border-pine bg-pine-tint shadow-sm text-pine' : 'border-line bg-surface hover:bg-bg text-ink'"
                   @click="form.walletId = w.id"
                 >
-                  <span class="w-7 h-7 rounded-[8px] bg-surface flex items-center justify-center text-sm shadow-xs border border-line-soft">
+                  <span
+                    class="w-7 h-7 rounded-[8px] flex items-center justify-center text-sm shadow-xs text-white"
+                    :style="{ background: w.color || '#10b981' }"
+                  >
                     {{ w.icon || '💵' }}
                   </span>
                   <div class="min-w-0 flex-1">

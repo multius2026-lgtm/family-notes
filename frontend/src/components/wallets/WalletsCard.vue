@@ -1,19 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted, computed } from "vue";
 import { useWalletsStore } from "@/stores/wallets";
 import { useCurrency } from "@/composables/useCurrency";
 import { usePrivacyMode } from "@/composables/usePrivacyMode";
-import BalanceCard from "@/components/ui/BalanceCard.vue";
+import RupiahInput from "@/components/ui/RupiahInput.vue";
 import type { WalletType, Wallet } from "@/types";
 import { WALLET_TYPE_LABELS } from "@/types";
 
-const router = useRouter();
 const walletsStore = useWalletsStore();
 const { fmt } = useCurrency();
-const { isPrivacyMode, togglePrivacy, maskValue } = usePrivacyMode();
+const { maskValue } = usePrivacyMode();
 
-// Modal state
 const showAddModal = ref(false);
 const editingWallet = ref<Wallet | null>(null);
 
@@ -24,7 +21,13 @@ const formIcon = ref("💵");
 const formColor = ref("#10b981");
 
 const WALLET_ICONS = ["💵", "🏦", "📱", "💳", "💰", "🪙", "🏧", "💼"];
-const WALLET_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4", "#64748b"];
+const WALLET_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4", "#64748b", "#ef4444"];
+
+const normalizedColor = computed(() => (formColor.value || "#10b981").trim().toLowerCase());
+
+function isColorSelected(col: string) {
+  return normalizedColor.value === col.toLowerCase();
+}
 
 onMounted(async () => {
   if (walletsStore.items.length === 0) {
@@ -48,8 +51,12 @@ function openEditModal(wallet: Wallet) {
   formType.value = wallet.type;
   formBalance.value = wallet.balance;
   formIcon.value = wallet.icon || "💵";
-  formColor.value = wallet.color || "#10b981";
+  formColor.value = (wallet.color || "#10b981").toLowerCase();
   showAddModal.value = true;
+}
+
+function pickColor(col: string) {
+  formColor.value = col.toLowerCase();
 }
 
 async function saveWallet() {
@@ -86,27 +93,57 @@ async function deleteWallet() {
 
 <template>
   <div class="wallets-card mb-5">
-    <!-- Hero BalanceCard per Design System -->
-    <BalanceCard
-      :totalBalance="walletsStore.totalBalance"
-      :wallets="walletsStore.items"
-      @addWallet="openAddModal"
-      @selectWallet="openEditModal"
-    />
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h2 class="text-[14px] font-bold text-ink m-0">Akun &amp; Dompet</h2>
+        <p class="text-[11.5px] text-ink-muted m-0 mt-0.5">
+          Rincian saldo per akun. Total di kartu atas adalah jumlah semua akun ini.
+        </p>
+      </div>
+      <button type="button" class="btn-wallet-add" @click="openAddModal">
+        + Tambah
+      </button>
+    </div>
+
+    <div v-if="walletsStore.items.length === 0" class="text-center py-6">
+      <p class="text-[13px] text-ink-muted mb-3">Belum ada akun. Tambahkan dompet pertama.</p>
+      <button type="button" class="btn-wallet-add" @click="openAddModal">Tambah Akun / Dompet</button>
+    </div>
+
+    <div v-else class="space-y-2">
+      <button
+        v-for="w in walletsStore.items"
+        :key="w.id"
+        type="button"
+        class="wallet-row"
+        @click="openEditModal(w)"
+      >
+        <span
+          class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 text-white"
+          :style="{ background: w.color || '#10b981' }"
+        >
+          {{ w.icon || "💵" }}
+        </span>
+        <div class="min-w-0 flex-1 text-left">
+          <p class="text-[13px] font-bold text-ink truncate leading-tight">{{ w.name }}</p>
+          <p class="text-[11px] text-ink-muted truncate">{{ WALLET_TYPE_LABELS[w.type] || w.type }}</p>
+        </div>
+        <p class="text-[13px] font-black text-ink shrink-0">{{ maskValue(fmt(w.balance)) }}</p>
+      </button>
+    </div>
 
     <!-- ════ Modal Tambah / Edit Dompet ════ -->
     <Teleport to="body">
-      <div v-if="showAddModal" class="wallet-modal-overlay" @click="showAddModal = false">
+      <div v-if="showAddModal" class="wallet-modal-overlay" @click.self="showAddModal = false">
         <div class="wallet-modal-sheet" @click.stop>
           <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
             <h3 class="text-base font-bold text-ink m-0">
               {{ editingWallet ? "Edit Akun / Dompet" : "Tambah Akun / Dompet" }}
             </h3>
-            <button class="text-ink-muted text-lg leading-none" @click="showAddModal = false">✕</button>
+            <button type="button" class="text-ink-muted text-lg leading-none" @click="showAddModal = false">✕</button>
           </div>
 
           <div class="space-y-3.5">
-            <!-- Nama Dompet -->
             <div>
               <label class="form-label text-xs">Nama Akun / Dompet</label>
               <input
@@ -116,7 +153,6 @@ async function deleteWallet() {
               />
             </div>
 
-            <!-- Tipe Dompet -->
             <div>
               <label class="form-label text-xs">Tipe Akun</label>
               <select v-model="formType" class="form-input text-sm">
@@ -127,20 +163,20 @@ async function deleteWallet() {
               </select>
             </div>
 
-            <!-- Saldo Awal -->
             <div>
               <label class="form-label text-xs">
                 {{ editingWallet ? "Saldo Saat Ini (Rp)" : "Saldo Awal (Rp)" }}
               </label>
-              <input
-                v-model.number="formBalance"
-                type="number"
-                placeholder="0"
-                class="form-input text-sm font-bold"
-              />
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-ink-muted">Rp</span>
+                <RupiahInput
+                  v-model="formBalance"
+                  placeholder="0"
+                  input-class="form-input text-sm font-bold w-full"
+                />
+              </div>
             </div>
 
-            <!-- Pilihan Ikon -->
             <div>
               <label class="form-label text-xs">Pilih Ikon</label>
               <div class="flex gap-2 overflow-x-auto pb-1">
@@ -148,7 +184,7 @@ async function deleteWallet() {
                   v-for="ico in WALLET_ICONS"
                   :key="ico"
                   type="button"
-                  class="w-9 h-9 rounded-xl border flex items-center justify-center text-lg transition-all"
+                  class="w-9 h-9 rounded-xl border flex items-center justify-center text-lg transition-all shrink-0"
                   :class="formIcon === ico ? 'border-primary bg-primary-light scale-105' : 'border-line bg-surface-2'"
                   @click="formIcon = ico"
                 >
@@ -157,24 +193,38 @@ async function deleteWallet() {
               </div>
             </div>
 
-            <!-- Pilihan Warna -->
             <div>
               <label class="form-label text-xs">Warna Tema</label>
-              <div class="flex gap-2">
+              <div class="flex flex-wrap items-center gap-2.5">
                 <button
                   v-for="col in WALLET_COLORS"
                   :key="col"
                   type="button"
-                  class="w-7 h-7 rounded-full border-2 transition-transform"
-                  :style="{ background: col, borderColor: formColor === col ? 'var(--ink)' : 'transparent' }"
-                  :class="{ 'scale-110': formColor === col }"
-                  @click="formColor = col"
-                ></button>
+                  class="color-swatch"
+                  :class="{ 'color-swatch-active': isColorSelected(col) }"
+                  :style="{ backgroundColor: col }"
+                  :title="col"
+                  :aria-pressed="isColorSelected(col)"
+                  @click.stop.prevent="pickColor(col)"
+                >
+                  <span v-if="isColorSelected(col)" class="color-check">✓</span>
+                </button>
+                <label class="color-swatch color-custom" title="Warna kustom">
+                  <input
+                    v-model="formColor"
+                    type="color"
+                    class="color-native"
+                    @click.stop
+                  />
+                  <span class="color-custom-plus">+</span>
+                </label>
               </div>
+              <p class="text-[11px] text-ink-muted mt-1.5 m-0">
+                Terpilih: <span class="font-bold" :style="{ color: formColor }">{{ formColor }}</span>
+              </p>
             </div>
           </div>
 
-          <!-- Action buttons -->
           <div class="mt-5 space-y-2">
             <button
               type="button"
@@ -201,29 +251,29 @@ async function deleteWallet() {
 
 <style scoped>
 .wallets-card {
-  padding: 14px 16px;
+  padding: 16px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
 }
 
-.btn-wallet-action {
-  display: inline-flex;
+.wallet-row {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: #6366f1;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  font-size: 11.5px;
-  font-weight: 700;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--bg);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
-.btn-wallet-action:hover {
-  background: rgba(99, 102, 241, 0.12);
+.wallet-row:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+  border-color: color-mix(in srgb, var(--pine) 22%, var(--line));
 }
 
 .btn-wallet-add {
@@ -239,42 +289,52 @@ async function deleteWallet() {
   cursor: pointer;
 }
 
-.wallets-carousel {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.wallets-carousel::-webkit-scrollbar {
-  display: none;
-}
-
-.wallet-pill-card {
-  flex-shrink: 0;
-  width: 140px;
-  padding: 10px 12px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--line);
-  border-radius: 16px;
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.wallet-pill-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
-
-.wallet-card-dashed {
-  border-style: dashed !important;
-  background: transparent !important;
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  width: 110px;
+  flex-shrink: 0;
+  padding: 0;
+  position: relative;
+  appearance: none;
+}
+.color-swatch-active {
+  border-color: var(--ink);
+  transform: scale(1.08);
+}
+.color-check {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+.color-custom {
+  overflow: hidden;
+  background: conic-gradient(from 180deg, #10b981, #3b82f6, #ec4899, #f59e0b, #10b981);
+}
+.color-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+.color-custom-plus {
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
 }
 
 .wallet-modal-overlay {

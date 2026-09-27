@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useSummaryStore } from "@/stores/summary";
 import { useMasterDataStore } from "@/stores/masterData";
 import { useTransactionsStore } from "@/stores/transactions";
+import { useWalletsStore } from "@/stores/wallets";
 import { useCurrency } from "@/composables/useCurrency";
 import CategoryDonutChart from "@/components/charts/CategoryDonutChart.vue";
 import TrendLineChart from "@/components/charts/TrendLineChart.vue";
@@ -22,6 +23,7 @@ const auth = useAuthStore();
 const summary = useSummaryStore();
 const master = useMasterDataStore();
 const txStore = useTransactionsStore();
+const walletsStore = useWalletsStore();
 const router = useRouter();
 const { fmt } = useCurrency();
 const { isPrivacyMode, togglePrivacy, maskValue } = usePrivacyMode();
@@ -38,6 +40,7 @@ onMounted(() => {
   summary.fetchDashboard();
   summary.fetchMonthly(now.getFullYear(), now.getMonth() + 1);
   master.fetchAll();
+  walletsStore.fetchList();
   txStore.fetchList({ from: daysAgo(29) });
 });
 
@@ -89,6 +92,9 @@ const currentExpense = computed(() => {
 
 const currentNet = computed(() => currentIncome.value - currentExpense.value);
 
+const totalWalletBalance = computed(() => walletsStore.totalBalance);
+const walletCount = computed(() => walletsStore.items.length);
+
 const savingsRate = computed(() => {
   if (currentIncome.value <= 0) return 0;
   return Math.round((currentNet.value / currentIncome.value) * 100);
@@ -102,18 +108,18 @@ const expenseRatio = computed(() => {
 // Status Kesehatan Finansial
 const financialHealth = computed(() => {
   if (currentIncome.value === 0 && currentExpense.value === 0) {
-    return { label: "Belum Ada Data", color: "text-ink-muted", bg: "bg-surface-2", dot: "⚪" };
+    return { label: "Belum ada data", color: "text-ink-muted", bg: "bg-surface-2", tone: "#8B948E" };
   }
   if (currentNet.value < 0) {
-    return { label: "Defisit Anggaran", color: "text-expense", bg: "bg-expense/10", dot: "🔴" };
+    return { label: "Defisit anggaran", color: "text-expense", bg: "bg-expense/10", tone: "var(--expense)" };
   }
   if (savingsRate.value >= 30) {
-    return { label: "Kondisi Prima", color: "text-[#10b981]", bg: "bg-[#10b981]/15", dot: "🟢" };
+    return { label: "Kondisi prima", color: "text-income", bg: "bg-income/10", tone: "var(--income)" };
   }
   if (savingsRate.value >= 10) {
-    return { label: "Arus Kas Stabil", color: "text-primary", bg: "bg-primary/15", dot: "🟢" };
+    return { label: "Arus kas stabil", color: "text-primary", bg: "bg-primary/15", tone: "var(--pine)" };
   }
-  return { label: "Perhatian (Boros)", color: "text-amber-500", bg: "bg-amber-500/15", dot: "🟡" };
+  return { label: "Perlu perhatian", color: "text-warn", bg: "bg-warn/15", tone: "var(--warn)" };
 });
 
 // Transaksi terbaru (5 item)
@@ -152,25 +158,22 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
 </script>
 
 <template>
-  <div class="pb-28 md:pb-0 min-h-screen">
+  <div class="pb-8 md:pb-10 min-h-screen">
     <!-- Executive Top Bar -->
     <div
-      class="px-5 pb-3 sticky top-0 z-20 border-b border-line"
-      style="padding-top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);"
+      class="px-5 pb-3.5 sticky top-0 z-20"
+      style="padding-top: calc(14px + env(safe-area-inset-top, 0px)); background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--line);"
     >
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="flex items-center gap-1.5 mb-0.5">
-            <span class="text-[10.5px] font-bold text-ink-muted uppercase tracking-widest">{{ todayLabel }}</span>
-          </div>
-          <h1 class="text-[19px] font-black text-ink tracking-tight" style="letter-spacing: -0.5px;">{{ greeting }}</h1>
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[11px] font-semibold text-ink-muted tracking-[0.14em] uppercase mb-0.5">{{ todayLabel }}</p>
+          <h1 class="text-[20px] font-extrabold text-ink truncate" style="letter-spacing: -0.6px;">{{ greeting }}</h1>
         </div>
 
-        <div class="flex items-center gap-2">
-          <!-- WhatsApp Quick Rekap Button -->
+        <div class="flex items-center gap-2 shrink-0">
           <button
-            class="h-9 px-3 rounded-full flex items-center gap-1.5 text-[11.5px] font-bold text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
-            style="background: linear-gradient(135deg, #25D366 0%, #1da851 100%);"
+            class="h-10 px-3.5 rounded-full flex items-center gap-1.5 text-[12px] font-bold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+            style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);"
             title="Kirim Rekap WhatsApp"
             @click="showWhatsAppModal = true"
           >
@@ -178,14 +181,13 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
               <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.072-2.18-.544-1.898-.787-3.119-2.73-3.214-2.857-.095-.128-.771-1.025-.771-1.954 0-.928.487-1.385.66-1.574.173-.189.378-.236.504-.236.126 0 .252.001.362.007.116.006.27-.044.423.323.16.38.544 1.325.592 1.422.048.096.08.209.016.335-.064.126-.096.205-.192.316-.096.112-.202.25-.288.336-.096.096-.197.2-.085.392.112.193.498.822 1.069 1.332.734.655 1.353.858 1.545.954.192.096.305.08.417-.048.112-.128.481-.56.609-.752.128-.192.256-.16.433-.096.176.064 1.122.529 1.314.625.192.096.32.144.368.224.048.08.048.464-.096.869z"/>
               <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.66 1.436 5.176L2 22l4.982-1.306A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.2c-1.637 0-3.167-.47-4.468-1.28l-.32-.2-2.956.776.789-2.883-.21-.334A8.163 8.163 0 0 1 3.8 12c0-4.521 3.679-8.2 8.2-8.2 4.522 0 8.2 3.679 8.2 8.2 0 4.522-3.678 8.2-8.2 8.2z"/>
             </svg>
-            <span class="hidden xs:inline">WA</span>
+            <span class="hidden sm:inline">Rekap</span>
           </button>
 
-          <!-- Theme switcher -->
           <button
             id="btn-theme-quick"
-            class="w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:text-ink transition-colors"
-            style="background: var(--surface-2); border: 1px solid var(--line);"
+            class="w-10 h-10 rounded-full flex items-center justify-center text-ink-muted hover:text-ink transition-colors"
+            style="background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-card);"
             title="Ganti Tema & Warna"
             @click="showThemeModal = true"
           >
@@ -205,10 +207,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
       <!-- Financial Health Badge & Toggle Row -->
       <div class="flex items-center justify-between mb-4">
         <div
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-bold transition-all shadow-sm"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-bold"
           :class="[financialHealth.bg, financialHealth.color]"
         >
-          <span>{{ financialHealth.dot }}</span>
+          <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="{ background: financialHealth.tone }"></span>
           <span>{{ financialHealth.label }}</span>
         </div>
 
@@ -244,24 +246,45 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
 
         <div class="flex items-start justify-between mb-1">
           <div>
-            <p class="text-white/75 text-[12px] font-semibold tracking-wide mb-0.5">
-              Saldo Bersih &middot; {{ periodView === 'monthly' ? monthLabel : '7 Hari Ini' }}
+            <p class="text-white/70 text-[11px] font-semibold tracking-[0.16em] uppercase mb-1">
+              Total saldo · {{ walletCount }} akun
             </p>
-            <h2 class="text-white font-black leading-tight" style="font-size: 30px; letter-spacing: -1px;">
-              {{ currentNet >= 0 ? '+' : '' }}{{ maskValue(fmt(currentNet)) }}
+            <h2 class="text-white leading-none font-display" style="font-size: 32px; letter-spacing: -1.2px; font-style: italic; font-weight: 500;">
+              {{ maskValue(fmt(totalWalletBalance)) }}
             </h2>
+            <p class="text-white/60 text-[11.5px] font-medium mt-1.5">
+              Jumlah seluruh saldo di akun
+            </p>
           </div>
 
-          <button
-            class="p-2 rounded-xl text-white transition-all"
-            style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);"
-            title="Buka Laporan Lengkap"
-            @click="router.push({ name: 'laporan' })"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 17l9.2-9.2M17 17V8H8"/>
-            </svg>
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              class="p-2 rounded-xl text-white transition-all"
+              style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);"
+              :title="isPrivacyMode ? 'Tampilkan saldo' : 'Sembunyikan saldo'"
+              @click="togglePrivacy"
+            >
+              <svg v-if="!isPrivacyMode" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+            <button
+              class="p-2 rounded-xl text-white transition-all"
+              style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);"
+              title="Buka Laporan Lengkap"
+              @click="router.push({ name: 'laporan' })"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 17l9.2-9.2M17 17V8H8"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Expense to Income Ratio Bar -->
@@ -284,9 +307,8 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
           </div>
         </div>
 
-        <!-- Metric Mini Cards Grid -->
-        <div class="grid grid-cols-2 gap-2.5">
-          <!-- Pemasukan -->
+        <!-- Metric Mini Cards Grid: arus kas periode, bukan saldo akun -->
+        <div class="grid grid-cols-3 gap-2">
           <div class="metric-mini">
             <div class="flex items-center gap-1.5 mb-1.5">
               <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
@@ -294,12 +316,11 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
                   <path d="M7 17L17 7M17 7H7M17 7v10"/>
                 </svg>
               </div>
-              <span class="text-white/75 text-[11px] font-semibold">Pemasukan</span>
+              <span class="text-white/75 text-[10.5px] font-semibold">Pemasukan</span>
             </div>
-            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ maskValue(fmt(currentIncome)) }}</p>
+            <p class="text-white font-display text-[15px] sm:text-[16px] leading-tight" style="letter-spacing: -0.4px; font-style: italic;">{{ maskValue(fmt(currentIncome)) }}</p>
           </div>
 
-          <!-- Pengeluaran -->
           <div class="metric-mini">
             <div class="flex items-center gap-1.5 mb-1.5">
               <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
@@ -307,9 +328,26 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
                   <path d="M17 7L7 17M7 17H17M7 17V7"/>
                 </svg>
               </div>
-              <span class="text-white/75 text-[11px] font-semibold">Pengeluaran</span>
+              <span class="text-white/75 text-[10.5px] font-semibold">Pengeluaran</span>
             </div>
-            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ maskValue(fmt(currentExpense)) }}</p>
+            <p class="text-white font-display text-[15px] sm:text-[16px] leading-tight" style="letter-spacing: -0.4px; font-style: italic;">{{ maskValue(fmt(currentExpense)) }}</p>
+          </div>
+
+          <div class="metric-mini">
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+              </div>
+              <span class="text-white/75 text-[10.5px] font-semibold">Arus Kas</span>
+            </div>
+            <p class="text-white font-display text-[15px] sm:text-[16px] leading-tight" style="letter-spacing: -0.4px; font-style: italic;">
+              {{ currentNet >= 0 ? '+' : '' }}{{ maskValue(fmt(currentNet)) }}
+            </p>
+            <p class="text-white/55 text-[9.5px] font-semibold mt-0.5 leading-tight">
+              {{ periodView === 'monthly' ? monthLabel : '7 hari ini' }}
+            </p>
           </div>
         </div>
       </div>
@@ -317,14 +355,14 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
       <!-- Kartu Dompet & Multi-Akun -->
       <WalletsCard />
 
-      <!-- Neo-Fintech Quick Actions Bar -->
-      <div class="grid grid-cols-4 gap-2">
+      <!-- Quick Actions -->
+      <div class="card p-2 grid grid-cols-4 gap-1">
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
+          class="p-3 flex flex-col items-center gap-2 hover:bg-bg rounded-[16px] active:scale-95 transition-all text-center cursor-pointer"
           @click="openModal({ type: 'income' })"
         >
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: var(--income-soft); color: var(--income-text);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <div class="w-11 h-11 rounded-[16px] flex items-center justify-center" style="background: var(--income-soft); color: var(--income-text);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
           </div>
@@ -332,11 +370,11 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
 
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
+          class="p-3 flex flex-col items-center gap-2 hover:bg-bg rounded-[16px] active:scale-95 transition-all text-center cursor-pointer"
           @click="openModal({ type: 'expense' })"
         >
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: var(--expense-soft); color: var(--expense-text);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <div class="w-11 h-11 rounded-[16px] flex items-center justify-center" style="background: var(--expense-soft); color: var(--expense-text);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
           </div>
@@ -344,10 +382,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
 
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
+          class="p-3 flex flex-col items-center gap-2 hover:bg-bg rounded-[16px] active:scale-95 transition-all text-center cursor-pointer"
           @click="router.push({ name: 'laporan' })"
         >
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: rgba(37,99,235,0.1); color: #2563eb;">
+          <div class="w-11 h-11 rounded-[16px] flex items-center justify-center" style="background: var(--pine-tint); color: var(--pine);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
             </svg>
@@ -356,10 +394,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
 
         <button
-          class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
+          class="p-3 flex flex-col items-center gap-2 hover:bg-bg rounded-[16px] active:scale-95 transition-all text-center cursor-pointer"
           @click="showWhatsAppModal = true"
         >
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: rgba(37,211,102,0.12); color: #25D366;">
+          <div class="w-11 h-11 rounded-[16px] flex items-center justify-center" style="background: rgba(37,211,102,0.12); color: #128C7E;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.072-2.18-.544-1.898-.787-3.119-2.73-3.214-2.857-.095-.128-.771-1.025-.771-1.954 0-.928.487-1.385.66-1.574.173-.189.378-.236.504-.236.126 0 .252.001.362.007.116.006.27-.044.423.323.16.38.544 1.325.592 1.422.048.096.08.209.016.335-.064.126-.096.205-.192.316-.096.112-.202.25-.288.336-.096.096-.197.2-.085.392.112.193.498.822 1.069 1.332.734.655 1.353.858 1.545.954.192.096.305.08.417-.048.112-.128.481-.56.609-.752.128-.192.256-.16.433-.096.176.064 1.122.529 1.314.625.192.096.32.144.368.224.048.08.048.464-.096.869z"/>
               <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.66 1.436 5.176L2 22l4.982-1.306A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.2c-1.637 0-3.167-.47-4.468-1.28l-.32-.2-2.956.776.789-2.883-.21-.334A8.163 8.163 0 0 1 3.8 12c0-4.521 3.679-8.2 8.2-8.2 4.522 0 8.2 3.679 8.2 8.2 0 4.522-3.678 8.2-8.2 8.2z"/>
