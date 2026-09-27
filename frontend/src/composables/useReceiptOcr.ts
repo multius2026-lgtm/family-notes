@@ -77,34 +77,49 @@ function preprocessImage(file: File): Promise<string> {
   });
 }
 
+function parseMoneyToken(raw: string): number | null {
+  const token = raw.trim().replace(/[()]/g, "");
+  if (!token) return null;
+  // 22.600 / 22,600 / 22.600,00 → ribuan Indonesia
+  if (/^\d{1,3}([.,]\d{3})+$/.test(token)) {
+    const num = parseInt(token.replace(/[.,]/g, ""), 10);
+    return Number.isFinite(num) ? num : null;
+  }
+  const digits = token.replace(/[^\d]/g, "");
+  if (!digits) return null;
+  const num = parseInt(digits, 10);
+  return Number.isFinite(num) ? num : null;
+}
+
 /** Cari total/grand total dari teks struk */
 function parseTotal(text: string): number | null {
-  // Pattern yang umum di struk Indonesia:
-  // "TOTAL", "GRAND TOTAL", "JUMLAH", "TOTAL BAYAR", "SUBTOTAL", "TAGIHAN"
-  const patterns = [
-    /(?:grand\s*total|total\s*bayar|total\s*tagihan|total\s*pembayaran|total\s*belanja|total)\s*[:\s|]*(?:rp\.?\s*)?([\d.,]+)/gi,
-    /(?:jumlah|tagihan|bayar)\s*[:\s|]*(?:rp\.?\s*)?([\d.,]+)/gi,
-    /(?:rp|idr)\s*([\d.,]{4,})/gi,
+  const preferred = [
+    /(?:grand\s*total|total\s*bayar|total\s*tagihan|total\s*pembayaran|total\s*belanja)\s*[:\s|=]*(?:rp\.?\s*)?([\d.,]+)/gi,
+    /(?:^|\n)\s*total\s*[:\s|=]+(?:rp\.?\s*)?([\d.,]+)/gim,
   ];
+  for (const pattern of preferred) {
+    let match: RegExpExecArray | null;
+    let last: number | null = null;
+    while ((match = pattern.exec(text)) !== null) {
+      const num = parseMoneyToken(match[1]);
+      if (num && num > 100 && num < 100_000_000) last = num;
+    }
+    if (last) return last;
+  }
 
+  const fallback = [
+    /(?:jumlah|tagihan|bayar)\s*[:\s|=]*(?:rp\.?\s*)?([\d.,]+)/gi,
+  ];
   let bestAmount: number | null = null;
-  let bestLen = 0;
-
-  for (const pattern of patterns) {
+  for (const pattern of fallback) {
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(text)) !== null) {
-      const raw = match[1].replace(/\./g, "").replace(/,/g, "");
-      const num = parseInt(raw, 10);
-      if (!isNaN(num) && num > 100 && num < 100_000_000) {
-        // Ambil yang paling besar (kemungkinan grand total)
-        if (num > bestLen) {
-          bestLen = num;
-          bestAmount = num;
-        }
+      const num = parseMoneyToken(match[1]);
+      if (num && num > 100 && num < 100_000_000) {
+        if (bestAmount === null || num > bestAmount) bestAmount = num;
       }
     }
   }
-
   return bestAmount;
 }
 
@@ -180,48 +195,162 @@ function parseStoreName(text: string): string | null {
   return null;
 }
 
+const ITEM_STOP_RE =
+  /^(harga\s*jual|grand\s*total|total\s*bayar|total\s*tagihan|total\s*pembayaran|total\s*belanja|\s*total\b|subtotal|tunai|kembali|kembalian|anda\s*hemat|ppn\b|dpp\b)/i;
+
+const LOCATION_HINT_RE =
+  /\b(kel\.?|kec\.?|kab\.?|kota|desa|jl\.?|jalan|alamat|kode\s*pos|rt\.?\/?rw\.?|madiun|ponorogo|pagotan|geger|uteran|jakarta|surabaya|bandung|semarang|yogya|yogyakarta|malang|bekasi|depok|tangerang|bogor|medan|makassar|denpasar|palembang)\b/i;
+
+const NON_PRODUCT_NAME_RE =
+  /^(npwp|pkp|ppn|dpp|total|tunai|kembali|kasir|member|struk|nota|invoice|kwitansi|indomaret|alfamart|indogrosir|superindo|sms|call|kontak|layanan|konsumen|whatsapp|pagotan|madiun|ponorogo)\b/i;
+
+function isReceiptMetaLine(line: string): boolean {
+  const lower = line.toLowerCase().replace(/\s+/g, " ").trim();
+  if (!lower) return true;
+  if (/^[=\-_*.:#\s]{3,}$/.test(line)) return true;
+
+  const metaSnippets = [
+    "grand total", "total bayar", "harga jual", "subtotal", "sub total",
+    "kembalian", "kembali", "tunai", "cash", "debit", "kredit", "credit",
+    "anda hemat", "hemat", "diskon", "discount", "potongan", "promo", "voucher", "poin",
+    "ppn", "dpp", "pajak", "tax", "pb1", "biaya layanan",
+    "kasir", "cashier", "operator", "struk", "receipt", "nota", "invoice", "kwitansi",
+    "tanggal", "waktu", "jam ", "member", "npwp", "pkp",
+    "terima kasih", "thank you", "selamat datang", "welcome",
+    "layanan konsumen", "call center", "call ", "kontak", "hotline",
+    "whatsapp", "website", "http", "www.", ".co.id", ".com", "@",
+    "kode pos", "kelurahan", "kecamatan", "kabupaten",
+    "terminal", "merchant", "cabang",
+  ];
+  if (metaSnippets.some((kw) => lower.includes(kw))) return true;
+  if (LOCATION_HINT_RE.test(line)) return true;
+  if (/\bno\.?\s*\d/i.test(line) && /\b(jl\.?|jalan|kel|kec|kab)\b/i.test(line)) return true;
+  if (/\b(utara|selatan|timur|barat|tengah)\b/i.test(line) && line.split(/\s+/).length <= 4 && !/\d{4,}/.test(line)) {
+    return true;
+  }
+
+  // Satu token 10+ digit = NPWP / telepon / ID, bukan harga item
+  const longIdToken = line.split(/\s+/).some((tok) => tok.replace(/\D/g, "").length >= 10);
+  if (longIdToken) return true;
+
+  if (/\b0\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{3,6}\b/.test(line)) return true;
+  if (/\b(?:62)?8\d{7,11}\b/.test(line.replace(/[\s.-]/g, ""))) return true;
+  if (/\b15\d{2}[\s.-]?\d{3,4}\b/.test(line)) return true;
+  if (/\b0?3\d{8,10}\b/.test(line.replace(/[\s.-]/g, ""))) return true;
+  if (/\bsms\b/i.test(line)) return true;
+
+  if (/\d{1,2}[./]\d{1,2}[./]\d{2,4}.*\d{1,2}:\d{2}/.test(line)) return true;
+  if ((line.match(/\//g) || []).length >= 2 && /\d/.test(line)) return true;
+  if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(line)) return true;
+
+  return false;
+}
+
+function isGarbagePrice(price: number): boolean {
+  if (!Number.isFinite(price) || price < 100) return true;
+  if (price >= 100_000_000) return true;
+  return String(Math.round(price)).length >= 9;
+}
+
+function isLikelyProductName(name: string): boolean {
+  const n = name.replace(/\s+/g, " ").trim();
+  if (n.length < 3 || n.length > 80) return false;
+  if (!/[a-zA-Z]{3,}/.test(n)) return false;
+  if (NON_PRODUCT_NAME_RE.test(n) || LOCATION_HINT_RE.test(n)) return false;
+  if (isReceiptMetaLine(n)) return false;
+  const letters = (n.match(/[a-zA-Z]/g) || []).length;
+  const digits = (n.match(/\d/g) || []).length;
+  if (digits > letters * 2 && letters < 6) return false;
+  return true;
+}
+
+function looksLikePostalCodePrice(name: string, price: number): boolean {
+  const s = String(Math.round(price));
+  if (!/^[1-9]\d{4}$/.test(s)) return false;
+  if (LOCATION_HINT_RE.test(name)) return true;
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length <= 2 && !/\d/.test(name) && name.length <= 24) return true;
+  return false;
+}
+
+function parseQtyUnitTotalLine(line: string): ReceiptItem | null {
+  // Format Indomaret: NAMA ... QTY HARGA_SATUAN TOTAL
+  // contoh: "MOGU MOGU CCONUT 320  2  11300  22600"
+  const tokens = line.trim().split(/\s+/);
+  if (tokens.length < 4) return null;
+
+  const totalTok = tokens[tokens.length - 1].replace(/[()]/g, "");
+  const unitTok = tokens[tokens.length - 2].replace(/[()]/g, "");
+  const qtyTok = tokens[tokens.length - 3];
+  if (!/^\d{1,3}$/.test(qtyTok)) return null;
+
+  const qty = parseInt(qtyTok, 10);
+  const unit = parseMoneyToken(unitTok);
+  const total = parseMoneyToken(totalTok);
+  if (qty < 1 || qty > 99 || unit == null || total == null) return null;
+  if (isGarbagePrice(unit) || isGarbagePrice(total)) return null;
+  if (unit < 100 || total < 100 || total > 50_000_000) return null;
+
+  const expected = qty * unit;
+  if (Math.abs(expected - total) > Math.max(200, Math.round(unit * 0.05))) return null;
+
+  const name = tokens
+    .slice(0, -3)
+    .join(" ")
+    .replace(/[^a-zA-Z0-9\s\-&./+%']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!isLikelyProductName(name)) return null;
+  return { name, price: total, qty: qty > 1 ? qty : undefined };
+}
+
 /** Cari daftar rincian barang/item belanja dari teks struk */
 export function parseReceiptItems(text: string): ReceiptItem[] {
-  const lines = text
+  const allLines = text
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length >= 2);
 
-  const nonItemKeywords = [
-    "total", "grand total", "subtotal", "sub total", "bayar", "tagihan", "jumlah",
-    "kembali", "kembalian", "change", "tunai", "cash", "debit", "kredit", "credit",
-    "bca", "mandiri", "bri", "bni", "qris", "gopay", "ovo", "dana", "shopee",
-    "diskon", "discount", "potongan", "hemat", "promo", "voucher", "poin",
-    "ppn", "pajak", "tax", "pb1", "biaya",
-    "kasir", "cashier", "operator", "struk", "receipt", "nota", "invoice",
-    "tanggal", "date", "waktu", "time", "jam",
-    "terima kasih", "thank you", "selamat datang", "welcome",
-    "call center", "layanan konsumen", "sms", "wa", "whatsapp", "website", "http", "www.",
-    "npwp", "pos", "terminal", "merchant", "toko", "cabang", "jl.", "jalan",
-    "item:", "items:", "qty:", "pcs:"
-  ];
+  let start = allLines.findIndex((l) => /^[=\-_*]{4,}/.test(l) || /^-+$/.test(l));
+  if (start < 0) start = 0;
+  else start += 1;
+
+  let end = allLines.findIndex((l, idx) => idx >= start && ITEM_STOP_RE.test(l));
+  if (end < 0) end = allLines.length;
+
+  const windowLines = allLines.slice(start, end);
+  const firstProduct = windowLines.findIndex(
+    (l) => !isReceiptMetaLine(l) && (parseQtyUnitTotalLine(l) != null || isLooseProductPriceLine(l))
+  );
+  const lines = firstProduct >= 0 ? windowLines.slice(firstProduct) : [];
 
   const items: ReceiptItem[] = [];
   const seen = new Set<string>();
 
+  function pushItem(item: ReceiptItem) {
+    const key = item.name.toLowerCase();
+    if (seen.has(key)) return;
+    if (!isLikelyProductName(item.name)) return;
+    if (item.price != null && (isGarbagePrice(item.price) || looksLikePostalCodePrice(item.name, item.price))) return;
+    seen.add(key);
+    items.push(item);
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const lower = line.toLowerCase();
+    if (isReceiptMetaLine(line)) continue;
+    if (/^\(.*\)$/.test(line) || /\(\s*[\d.,]+\s*\)/.test(line)) continue;
+    if (/^c\s+/i.test(line) && /\d/.test(line)) continue;
 
-    // Lewati garis pemisah seperti ==== atau ----
-    if (/^[=\-_*.#\s]{3,}$/.test(line)) continue;
+    const structured = parseQtyUnitTotalLine(line);
+    if (structured) {
+      pushItem(structured);
+      continue;
+    }
 
-    // Lewati jika diawali kata non-item
-    const isExcluded = nonItemKeywords.some((kw) => {
-      return lower.startsWith(kw) || (lower.includes(kw) && /(total|subtotal|kembali|tunai|kasir|terima kasih|ppn|pajak|diskon)/.test(kw));
-    });
-    if (isExcluded) continue;
-
-    // Pattern 1: Baris mengandung nama dan harga di akhir (mis. "INDOMILK 250ML 6.500")
-    let qty: number | undefined = undefined;
+    let qty: number | undefined;
     let cleanLine = line;
-
-    const qtyMatch = cleanLine.match(/^(\d{1,2})\s*(?:x|pcs|bh|btl|ptg|pack)?\s+(.*)/i);
+    const qtyMatch = cleanLine.match(/^(\d{1,2})\s*(?:x|pcs|bh|btl|ptg|pack)\s+(.*)/i);
     if (qtyMatch) {
       const q = parseInt(qtyMatch[1], 10);
       if (q > 0 && q <= 99) {
@@ -233,42 +362,39 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
     const priceMatch = cleanLine.match(/^(.*?)(?:[\s:|=]+)(?:rp\.?\s*)?([\d.,]{3,})$/i);
     if (priceMatch) {
       const rawName = priceMatch[1].replace(/^[0-9\s\-.*#]+/, "").trim();
-      const rawPrice = priceMatch[2].replace(/\./g, "").replace(/,/g, "");
-      const priceNum = parseInt(rawPrice, 10);
-
-      const hasLetters = /[a-zA-Z]/.test(rawName);
-      if (hasLetters && rawName.length >= 2 && !isNaN(priceNum) && priceNum >= 100 && priceNum <= 50_000_000) {
-        const cleanName = rawName.replace(/[^a-zA-Z0-9\s\-&./+%']/g, "").trim();
-        if (cleanName && !seen.has(cleanName.toLowerCase())) {
-          seen.add(cleanName.toLowerCase());
-          items.push({
-            name: cleanName,
-            price: priceNum,
-            qty: qty && qty > 1 ? qty : undefined,
-          });
+      const priceNum = parseMoneyToken(priceMatch[2]);
+      if (
+        isLikelyProductName(rawName) &&
+        priceNum != null &&
+        !isGarbagePrice(priceNum) &&
+        priceNum >= 500 &&
+        priceNum <= 50_000_000 &&
+        !looksLikePostalCodePrice(rawName, priceNum)
+      ) {
+        const cleanName = rawName.replace(/[^a-zA-Z0-9\s\-&./+%']/g, " ").replace(/\s+/g, " ").trim();
+        if (cleanName) {
+          pushItem({ name: cleanName, price: priceNum, qty: qty && qty > 1 ? qty : undefined });
           continue;
         }
       }
     }
 
-    // Pattern 2: Dua baris (baris 1 = nama produk, baris 2 = qty & harga)
     if (i + 1 < lines.length) {
       const nextLine = lines[i + 1].trim();
-      const subPriceMatch = nextLine.match(/(?:(\d{1,2})\s*(?:x|pcs)?\s*)?(?:rp\.?\s*)?([\d.,]{3,})$/i);
-      if (subPriceMatch && /[a-zA-Z]{3,}/.test(line)) {
-        const nextPrice = parseInt(subPriceMatch[2].replace(/\./g, "").replace(/,/g, ""), 10);
-        if (!isNaN(nextPrice) && nextPrice >= 100 && nextPrice <= 50_000_000) {
-          const cleanName = line.replace(/[^a-zA-Z0-9\s\-&./+%']/g, "").trim();
-          if (cleanName && !seen.has(cleanName.toLowerCase()) && !nonItemKeywords.some((kw) => cleanName.toLowerCase().startsWith(kw))) {
+      if (isReceiptMetaLine(nextLine)) continue;
+      const subPriceMatch = nextLine.match(/^(?:(\d{1,2})\s*(?:x|pcs)\s*)?(?:rp\.?\s*)?([\d.,]{3,})$/i);
+      if (subPriceMatch && isLikelyProductName(line)) {
+        const nextPrice = parseMoneyToken(subPriceMatch[2]);
+        if (nextPrice != null && !isGarbagePrice(nextPrice) && nextPrice >= 500 && nextPrice <= 50_000_000) {
+          const cleanName = line.replace(/[^a-zA-Z0-9\s\-&./+%']/g, " ").replace(/\s+/g, " ").trim();
+          if (cleanName && !looksLikePostalCodePrice(cleanName, nextPrice)) {
             const nextQty = subPriceMatch[1] ? parseInt(subPriceMatch[1], 10) : undefined;
-            seen.add(cleanName.toLowerCase());
-            items.push({
+            pushItem({
               name: cleanName,
               price: nextPrice,
               qty: nextQty && nextQty > 1 ? nextQty : undefined,
             });
-            i++; // lewati baris harga
-            continue;
+            i++;
           }
         }
       }
@@ -276,6 +402,19 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
   }
 
   return items;
+}
+
+function isLooseProductPriceLine(line: string): boolean {
+  const priceMatch = line.match(/^(.*?)(?:[\s:|=]+)(?:rp\.?\s*)?([\d.,]{3,})$/i);
+  if (!priceMatch) return false;
+  const rawName = priceMatch[1].replace(/^[0-9\s\-.*#]+/, "").trim();
+  const priceNum = parseMoneyToken(priceMatch[2]);
+  return (
+    isLikelyProductName(rawName) &&
+    priceNum != null &&
+    !isGarbagePrice(priceNum) &&
+    !looksLikePostalCodePrice(rawName, priceNum)
+  );
 }
 
 export function useReceiptOcr() {

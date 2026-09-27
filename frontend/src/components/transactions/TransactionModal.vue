@@ -786,37 +786,71 @@ async function handleDelete() {
             </button>
           </div>
         </div>
+      </div>
+    </Transition>
+  </Teleport>
 
-        <!-- Receipt Scanner Modal Overlay -->
-        <ReceiptScanner
-          v-if="showScanner"
-          @apply="handleScannerApply"
-          @close="showScanner = false"
-        />
-
-        <!-- Lightbox Zoom Foto Struk -->
+  <!-- Overlay scan struk: di atas modal transaksi, bukan berdampingan -->
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div
+        v-if="isOpen && showScanner"
+        class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/55 backdrop-blur-sm"
+        @click.self="showScanner = false"
+      >
         <div
-          v-if="showFullImage && form.receiptUrl"
-          class="fixed inset-0 z-60 bg-ink/80 backdrop-blur-md flex items-center justify-center p-4"
-          @click.self="showFullImage = false"
+          class="scanner-sheet w-full sm:max-w-lg bg-surface flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden border border-line"
+          :class="['rounded-t-[26px] sm:rounded-[22px]', 'shadow-[0_12px_40px_rgba(18,25,21,0.22)]']"
         >
-          <div class="relative max-w-lg w-full bg-surface rounded-[22px] overflow-hidden shadow-2xl p-2">
+          <div class="sm:hidden flex justify-center pt-3 pb-1">
+            <div class="w-10 h-1 bg-line rounded-full"></div>
+          </div>
+          <div class="px-5 py-3.5 border-b border-line-soft flex items-center justify-between flex-shrink-0">
+            <div>
+              <h2 class="text-[16px] font-[800] text-ink leading-tight">Scan / Lampiran Struk</h2>
+              <p class="text-[11px] font-[600] text-ink-soft mt-0.5">Foto dikompres otomatis lalu diunggah</p>
+            </div>
             <button
               type="button"
-              class="absolute top-4 right-4 w-8 h-8 rounded-full bg-ink/70 text-white flex items-center justify-center hover:bg-ink transition-colors"
-              @click="showFullImage = false"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-ink-soft hover:text-ink hover:bg-bg transition-colors"
+              aria-label="Tutup scan struk"
+              @click="showScanner = false"
             >
-              <X :size="16" />
+              <X :size="18" :stroke-width="1.8" />
             </button>
-            <img
-              :src="form.receiptUrl"
-              alt="Foto Struk Penuh"
-              class="w-full max-h-[80vh] object-contain rounded-[16px]"
+          </div>
+          <div class="p-5 overflow-y-auto flex-1">
+            <ReceiptScanner
+              @apply="handleScannerApply"
+              @close="showScanner = false"
             />
           </div>
         </div>
       </div>
     </Transition>
+  </Teleport>
+
+  <Teleport to="body">
+    <div
+      v-if="isOpen && showFullImage && form.receiptUrl"
+      class="fixed inset-0 z-[90] bg-ink/80 backdrop-blur-md flex items-center justify-center p-4"
+      @click.self="showFullImage = false"
+    >
+      <div class="relative max-w-lg w-full bg-surface rounded-[22px] overflow-hidden shadow-2xl p-2">
+        <button
+          type="button"
+          class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-ink/70 text-white flex items-center justify-center hover:bg-ink transition-colors"
+          @click="showFullImage = false"
+        >
+          <X :size="16" />
+        </button>
+        <img
+          :src="form.receiptUrl"
+          alt="Foto Struk Penuh"
+          class="w-full max-h-[80vh] object-contain rounded-[16px]"
+        />
+      </div>
+    </div>
   </Teleport>
 </template>
 
@@ -832,20 +866,26 @@ async function handleDelete() {
 }
 
 .modal-fade-enter-active .modal-sheet,
-.modal-fade-leave-active .modal-sheet {
+.modal-fade-leave-active .modal-sheet,
+.modal-fade-enter-active .scanner-sheet,
+.modal-fade-leave-active .scanner-sheet {
   transition: transform 250ms ease, opacity 250ms ease;
 }
 
 @media (max-width: 639px) {
   .modal-fade-enter-from .modal-sheet,
-  .modal-fade-leave-to .modal-sheet {
+  .modal-fade-leave-to .modal-sheet,
+  .modal-fade-enter-from .scanner-sheet,
+  .modal-fade-leave-to .scanner-sheet {
     transform: translateY(100%);
   }
 }
 
 @media (min-width: 640px) {
   .modal-fade-enter-from .modal-sheet,
-  .modal-fade-leave-to .modal-sheet {
+  .modal-fade-leave-to .modal-sheet,
+  .modal-fade-enter-from .scanner-sheet,
+  .modal-fade-leave-to .scanner-sheet {
     transform: scale(0.95);
     opacity: 0;
   }
