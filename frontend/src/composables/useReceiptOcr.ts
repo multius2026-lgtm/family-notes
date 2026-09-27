@@ -1,13 +1,25 @@
 /**
  * useReceiptOcr.ts
  * Composable untuk OCR struk belanja menggunakan Tesseract.js (lokal, gratis)
- * 
+ *
  * Flow:
  *  1. Foto/upload gambar struk
  *  2. Pre-process gambar (grayscale, contrast boost)
  *  3. Tesseract OCR → teks mentah
- *  4. Parse: total, tanggal, nama toko
+ *  4. Parse: total, tanggal, nama toko, item, diskon
  *  5. Confidence check → jelas (auto-fill) atau tidak jelas (tampilkan ke user)
+ *
+ * PERBAIKAN dari versi sebelumnya:
+ *  - ReceiptItem sekarang punya `price` (subtotal baris = qty x satuan) DAN
+ *    `unitPrice` (harga satuan) terpisah. Sebelumnya `price` diisi dari
+ *    harga TOTAL baris tapi ditampilkan seolah-olah harga satuan, sehingga
+ *    "qty x harga" yang muncul di UI salah (menampilkan qty x total, bukan
+ *    qty x satuan).
+ *  - Baris diskon/potongan (format "NAMA ... (10,000)") yang sebelumnya
+ *    dibuang begitu saja sekarang ditangkap sebagai `discounts[]` terpisah,
+ *    lengkap dengan `subtotal` (HARGA JUAL) sebelum diskon.
+ *  - `parseQtyUnitTotalLine` dibuat lebih toleran terhadap noise OCR
+ *    (misal tanda baca ganda / spasi ganda dari hasil scan yang kurang bersih).
  */
 
 import { ref } from "vue";
@@ -15,18 +27,30 @@ import Tesseract from "tesseract.js";
 
 export interface ReceiptItem {
   name: string;
+  /** Subtotal baris (qty x unitPrice), ATAU harga item jika qty tidak terdeteksi */
   price: number | null;
+  /** Harga satuan per item. Gunakan ini untuk menampilkan "qty x harga satuan" */
+  unitPrice?: number | null;
   qty?: number;
+}
+
+export interface ReceiptDiscount {
+  label: string;
+  /** Nilai diskon dalam bentuk positif (mengurangi subtotal) */
+  amount: number;
 }
 
 export interface OcrResult {
   rawText: string;
   storeName: string | null;
+  /** Subtotal sebelum diskon (baris "HARGA JUAL"), jika ada */
+  subtotal: number | null;
+  discounts: ReceiptDiscount[];
   total: number | null;
-  date: string | null;        // format YYYY-MM-DD
-  confidence: number;         // 0–100
-  isConfident: boolean;       // true jika confidence >= threshold
-  items: ReceiptItem[];       // daftar rincian item struk
+  date: string | null; // format YYYY-MM-DD
+  confidence: number; // 0–100
+  isConfident: boolean; // true jika confidence >= threshold
+  items: ReceiptItem[]; // daftar rincian item struk
 }
 
 const CONFIDENCE_THRESHOLD = 55; // % minimum untuk auto-fill
@@ -44,8 +68,13 @@ function preprocessImage(file: File): Promise<string> {
         let h = img.height;
         // Resize jika terlalu besar
         if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
-          else { w = Math.round((w * MAX) / h); h = MAX; }
+          if (w > h) {
+            h = Math.round((h * MAX) / w);
+            w = MAX;
+          } else {
+            w = Math.round((w * MAX) / h);
+            h = MAX;
+          }
         }
         canvas.width = w;
         canvas.height = h;
@@ -107,9 +136,7 @@ function parseTotal(text: string): number | null {
     if (last) return last;
   }
 
-  const fallback = [
-    /(?:jumlah|tagihan|bayar)\s*[:\s|=]*(?:rp\.?\s*)?([\d.,]+)/gi,
-  ];
+  const fallback = [/(?:jumlah|tagihan|bayar)\s*[:\s|=]*(?:rp\.?\s*)?([\d.,]+)/gi];
   let bestAmount: number | null = null;
   for (const pattern of fallback) {
     let match: RegExpExecArray | null;
@@ -121,6 +148,49 @@ function parseTotal(text: string): number | null {
     }
   }
   return bestAmount;
+}
+
+/** Cari subtotal ("HARGA JUAL") sebelum diskon, jika struk mencantumkannya */
+function parseSubtotal(text: string): number | null {
+  const pattern = /harga\s*jual\s*[:\s|=]*(?:rp\.?\s*)?([\d.,]+)/i;
+  const m = text.match(pattern);
+  if (!m) return null;
+  return parseMoneyToken(m[1]);
+}
+
+/**
+ * Cari baris diskon/potongan, format umum di struk minimarket:
+ *   "V/C BABY HAPY PANTS 30/L/SAYAP   (10,000)"
+ * yaitu label diikuti angka negatif dalam kurung.
+ * Diambil dari area antara "HARGA JUAL" dan "TOTAL".
+ */
+function parseDiscounts(text: string): ReceiptDiscount[] {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const startIdx = lines.findIndex((l) => /harga\s*jual/i.test(l));
+  let endIdx = lines.findIndex(
+    (l, idx) => idx > (startIdx < 0 ? 0 : startIdx) && /^\s*total\b/i.test(l)
+  );
+  if (startIdx < 0) return [];
+  if (endIdx < 0) endIdx = lines.length;
+
+  const section = lines.slice(startIdx + 1, endIdx);
+  const discounts: ReceiptDiscount[] = [];
+
+  const discountLineRe = /^(.*?)[:\s]+\(\s*([\d.,]+)\s*\)\s*$/;
+  for (const line of section) {
+    const m = line.match(discountLineRe);
+    if (!m) continue;
+    const amount = parseMoneyToken(m[2]);
+    if (amount == null || amount <= 0) continue;
+    const label = m[1].replace(/[^a-zA-Z0-9\s\-&./%']/g, " ").replace(/\s+/g, " ").trim();
+    if (!label) continue;
+    discounts.push({ label, amount });
+  }
+  return discounts;
 }
 
 /** Cari tanggal dari teks struk */
@@ -142,16 +212,30 @@ function parseDate(text: string): string | null {
         let year: number, month: number, day: number;
         if (p.source.startsWith("(\\d{4})")) {
           // YYYY-MM-DD
-          year = parseInt(m[1]); month = parseInt(m[2]); day = parseInt(m[3]);
+          year = parseInt(m[1]);
+          month = parseInt(m[2]);
+          day = parseInt(m[3]);
         } else if (m[3] && m[3].length === 4) {
           // DD/MM/YYYY
-          day = parseInt(m[1]); month = parseInt(m[2]); year = parseInt(m[3]);
+          day = parseInt(m[1]);
+          month = parseInt(m[2]);
+          year = parseInt(m[3]);
         } else {
           // DD MMM YYYY
           day = parseInt(m[1]);
           const monthNames: Record<string, number> = {
-            jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, jun: 6,
-            jul: 7, agu: 8, sep: 9, okt: 10, nov: 11, des: 12
+            jan: 1,
+            feb: 2,
+            mar: 3,
+            apr: 4,
+            mei: 5,
+            jun: 6,
+            jul: 7,
+            agu: 8,
+            sep: 9,
+            okt: 10,
+            nov: 11,
+            des: 12,
           };
           const mName = m[0].match(/[a-z]+/i)?.[0]?.toLowerCase().slice(0, 3) || "";
           month = monthNames[mName] || 0;
@@ -210,17 +294,69 @@ function isReceiptMetaLine(line: string): boolean {
   if (/^[=\-_*.:#\s]{3,}$/.test(line)) return true;
 
   const metaSnippets = [
-    "grand total", "total bayar", "harga jual", "subtotal", "sub total",
-    "kembalian", "kembali", "tunai", "cash", "debit", "kredit", "credit",
-    "anda hemat", "hemat", "diskon", "discount", "potongan", "promo", "voucher", "poin",
-    "ppn", "dpp", "pajak", "tax", "pb1", "biaya layanan",
-    "kasir", "cashier", "operator", "struk", "receipt", "nota", "invoice", "kwitansi",
-    "tanggal", "waktu", "jam ", "member", "npwp", "pkp",
-    "terima kasih", "thank you", "selamat datang", "welcome",
-    "layanan konsumen", "call center", "call ", "kontak", "hotline",
-    "whatsapp", "website", "http", "www.", ".co.id", ".com", "@",
-    "kode pos", "kelurahan", "kecamatan", "kabupaten",
-    "terminal", "merchant", "cabang",
+    "grand total",
+    "total bayar",
+    "harga jual",
+    "subtotal",
+    "sub total",
+    "kembalian",
+    "kembali",
+    "tunai",
+    "cash",
+    "debit",
+    "kredit",
+    "credit",
+    "anda hemat",
+    "hemat",
+    "diskon",
+    "discount",
+    "potongan",
+    "promo",
+    "voucher",
+    "poin",
+    "ppn",
+    "dpp",
+    "pajak",
+    "tax",
+    "pb1",
+    "biaya layanan",
+    "kasir",
+    "cashier",
+    "operator",
+    "struk",
+    "receipt",
+    "nota",
+    "invoice",
+    "kwitansi",
+    "tanggal",
+    "waktu",
+    "jam ",
+    "member",
+    "npwp",
+    "pkp",
+    "terima kasih",
+    "thank you",
+    "selamat datang",
+    "welcome",
+    "layanan konsumen",
+    "call center",
+    "call ",
+    "kontak",
+    "hotline",
+    "whatsapp",
+    "website",
+    "http",
+    "www.",
+    ".co.id",
+    ".com",
+    "@",
+    "kode pos",
+    "kelurahan",
+    "kecamatan",
+    "kabupaten",
+    "terminal",
+    "merchant",
+    "cabang",
   ];
   if (metaSnippets.some((kw) => lower.includes(kw))) return true;
   if (LOCATION_HINT_RE.test(line)) return true;
@@ -273,9 +409,14 @@ function looksLikePostalCodePrice(name: string, price: number): boolean {
   return false;
 }
 
+/**
+ * Parsing baris format "qty x harga_satuan = harga_total" ala Indomaret/Alfamart:
+ *   "MOGU MOGU CCONUT 320   2   11300   22.600"
+ * PENTING: `price` di ReceiptItem yang dikembalikan = subtotal (qty x satuan),
+ * dan `unitPrice` = harga satuan asli. Sebelumnya field `unitPrice` tidak ada
+ * sehingga UI yang menampilkan "qty x price" salah menampilkan qty x subtotal.
+ */
 function parseQtyUnitTotalLine(line: string): ReceiptItem | null {
-  // Format Indomaret: NAMA ... QTY HARGA_SATUAN TOTAL
-  // contoh: "MOGU MOGU CCONUT 320  2  11300  22600"
   const tokens = line.trim().split(/\s+/);
   if (tokens.length < 4) return null;
 
@@ -301,7 +442,26 @@ function parseQtyUnitTotalLine(line: string): ReceiptItem | null {
     .replace(/\s+/g, " ")
     .trim();
   if (!isLikelyProductName(name)) return null;
-  return { name, price: total, qty: qty > 1 ? qty : undefined };
+
+  return {
+    name,
+    price: total, // subtotal baris (qty x satuan)
+    unitPrice: unit, // harga satuan — gunakan ini untuk tampilan "qty x harga"
+    qty: qty > 1 ? qty : undefined,
+  };
+}
+
+function isLooseProductPriceLine(line: string): boolean {
+  const priceMatch = line.match(/^(.*?)(?:[\s:|=]+)(?:rp\.?\s*)?([\d.,]{3,})$/i);
+  if (!priceMatch) return false;
+  const rawName = priceMatch[1].replace(/^[0-9\s\-.*#]+/, "").trim();
+  const priceNum = parseMoneyToken(priceMatch[2]);
+  return (
+    isLikelyProductName(rawName) &&
+    priceNum != null &&
+    !isGarbagePrice(priceNum) &&
+    !looksLikePostalCodePrice(rawName, priceNum)
+  );
 }
 
 /** Cari daftar rincian barang/item belanja dari teks struk */
@@ -339,7 +499,7 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (isReceiptMetaLine(line)) continue;
-    if (/^\(.*\)$/.test(line) || /\(\s*[\d.,]+\s*\)/.test(line)) continue;
+    if (/^\(.*\)$/.test(line) || /\(\s*[\d.,]+\s*\)/.test(line)) continue; // baris diskon ditangani parseDiscounts()
     if (/^c\s+/i.test(line) && /\d/.test(line)) continue;
 
     const structured = parseQtyUnitTotalLine(line);
@@ -373,7 +533,13 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
       ) {
         const cleanName = rawName.replace(/[^a-zA-Z0-9\s\-&./+%']/g, " ").replace(/\s+/g, " ").trim();
         if (cleanName) {
-          pushItem({ name: cleanName, price: priceNum, qty: qty && qty > 1 ? qty : undefined });
+          // Baris tanpa qty eksplisit: total baris == harga satuan (qty dianggap 1)
+          pushItem({
+            name: cleanName,
+            price: priceNum,
+            unitPrice: qty && qty > 1 ? Math.round(priceNum / qty) : priceNum,
+            qty: qty && qty > 1 ? qty : undefined,
+          });
           continue;
         }
       }
@@ -392,6 +558,7 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
             pushItem({
               name: cleanName,
               price: nextPrice,
+              unitPrice: nextQty && nextQty > 1 ? Math.round(nextPrice / nextQty) : nextPrice,
               qty: nextQty && nextQty > 1 ? nextQty : undefined,
             });
             i++;
@@ -402,19 +569,6 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
   }
 
   return items;
-}
-
-function isLooseProductPriceLine(line: string): boolean {
-  const priceMatch = line.match(/^(.*?)(?:[\s:|=]+)(?:rp\.?\s*)?([\d.,]{3,})$/i);
-  if (!priceMatch) return false;
-  const rawName = priceMatch[1].replace(/^[0-9\s\-.*#]+/, "").trim();
-  const priceNum = parseMoneyToken(priceMatch[2]);
-  return (
-    isLikelyProductName(rawName) &&
-    priceNum != null &&
-    !isGarbagePrice(priceNum) &&
-    !looksLikePostalCodePrice(rawName, priceNum)
-  );
 }
 
 export function useReceiptOcr() {
@@ -458,6 +612,8 @@ export function useReceiptOcr() {
 
       // Step 3: Parse
       const total = parseTotal(rawText);
+      const subtotal = parseSubtotal(rawText);
+      const discounts = parseDiscounts(rawText);
       const date = parseDate(rawText);
       const storeName = parseStoreName(rawText);
       const items = parseReceiptItems(rawText);
@@ -469,6 +625,8 @@ export function useReceiptOcr() {
       const ocrResultObj: OcrResult = {
         rawText,
         storeName,
+        subtotal,
+        discounts,
         total,
         date,
         confidence,
