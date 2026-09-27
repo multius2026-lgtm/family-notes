@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useMasterDataStore } from "@/stores/masterData";
+import { useWalletsStore } from "@/stores/wallets";
 import CategoryPicker from "./CategoryPicker.vue";
 import type { PeriodType, TransactionType, ReceiptItem } from "@/types";
 import { PERIOD_LABEL } from "@/types";
+import { useCurrency } from "@/composables/useCurrency";
 
 export interface TxFormState {
   type: TransactionType;
@@ -16,15 +18,78 @@ export interface TxFormState {
   receiptUrl?: string | null;
   isOcr?: boolean;
   receiptItems?: ReceiptItem[] | null;
+  walletId?: string | null;
+  transferToWalletId?: string | null;
 }
 
 const form = defineModel<TxFormState>({ required: true });
 const master = useMasterDataStore();
+const walletsStore = useWalletsStore();
+const { fmt } = useCurrency();
 
 const isIncome = computed(() => form.value.type === "income");
+const isExpense = computed(() => form.value.type === "expense");
+const isTransfer = computed(() => form.value.type === "transfer");
+
+// Mini Calculator State
+const showCalculator = ref(false);
+const calcInput = ref("");
+
+function openCalculator() {
+  calcInput.value = form.value.amount ? String(form.value.amount) : "";
+  showCalculator.value = true;
+}
+
+function appendCalc(char: string) {
+  calcInput.value += char;
+}
+
+function clearCalc() {
+  calcInput.value = "";
+}
+
+function deleteCalcChar() {
+  calcInput.value = calcInput.value.slice(0, -1);
+}
+
+function calculateResult() {
+  try {
+    // Sanitasi hanya angka dan operator matematika dasar
+    const sanitized = calcInput.value.replace(/[^0-9+\-*/.]/g, "");
+    if (!sanitized) return;
+    // Evaluasi rumus sederhana
+    const res = Function(`"use strict"; return (${sanitized})`)();
+    if (!isNaN(res) && isFinite(res)) {
+      form.value.amount = Math.max(0, Math.round(res));
+      showCalculator.value = false;
+    }
+  } catch (e) {
+    // Jika ekspresi tidak valid
+  }
+}
+
+onMounted(async () => {
+  if (walletsStore.items.length === 0) {
+    await walletsStore.fetchList();
+  }
+  // Pasang default wallet jika belum dipilih
+  if (!form.value.walletId && walletsStore.defaultWallet) {
+    form.value.walletId = walletsStore.defaultWallet.id;
+  }
+  if (isTransfer.value && !form.value.transferToWalletId && walletsStore.items.length > 1) {
+    const secondWallet = walletsStore.items.find((w) => w.id !== form.value.walletId);
+    if (secondWallet) form.value.transferToWalletId = secondWallet.id;
+  }
+});
 
 function setType(t: TransactionType) {
   form.value.type = t;
+  if (t === "transfer") {
+    if (!form.value.transferToWalletId && walletsStore.items.length > 1) {
+      const secondWallet = walletsStore.items.find((w) => w.id !== form.value.walletId);
+      if (secondWallet) form.value.transferToWalletId = secondWallet.id;
+    }
+  }
 }
 
 function pickSource(id: string) {
@@ -34,32 +99,32 @@ function pickSource(id: string) {
 }
 
 const SOURCE_ICONS: Record<string, string> = {
-  "Gaji": "💰",
-  "Freelance": "💼",
-  "Bonus": "🎁",
-  "Investasi": "📈",
-  "Lainnya": "💳",
+  Gaji: "💰",
+  Freelance: "💼",
+  Bonus: "🎁",
+  Investasi: "📈",
+  Lainnya: "💳",
 };
 
 const EXPENSE_ICONS: Record<string, string> = {
-  "Makanan": "🍔",
+  Makanan: "🍔",
   "Makanan & Minuman": "🍔",
-  "Transportasi": "🚗",
-  "Belanja": "🛍️",
-  "Tagihan": "💡",
-  "Lainnya": "📦",
-  "Hiburan": "🎬",
-  "Kesehatan": "💊",
+  Transportasi: "🚗",
+  Belanja: "🛍️",
+  Tagihan: "💡",
+  Lainnya: "📦",
+  Hiburan: "🎬",
+  Kesehatan: "💊",
 };
 </script>
 
 <template>
   <div>
-    <!-- Tab Toggle: Pemasukan / Pengeluaran -->
-    <div class="tab-toggle mb-5">
+    <!-- Tab Toggle 3 Pilihan: Pemasukan / Pengeluaran / Transfer -->
+    <div class="tab-toggle mb-5 grid grid-cols-3 p-1 rounded-2xl bg-surface-2 border border-line">
       <button
         type="button"
-        class="tab-btn"
+        class="tab-btn py-2 text-[13px] font-bold rounded-xl transition-all"
         :class="isIncome ? 'active-income' : ''"
         @click="setType('income')"
       >
@@ -67,16 +132,88 @@ const EXPENSE_ICONS: Record<string, string> = {
       </button>
       <button
         type="button"
-        class="tab-btn"
-        :class="!isIncome ? 'active-expense' : ''"
+        class="tab-btn py-2 text-[13px] font-bold rounded-xl transition-all"
+        :class="isExpense ? 'active-expense' : ''"
         @click="setType('expense')"
       >
         Pengeluaran
       </button>
+      <button
+        type="button"
+        class="tab-btn py-2 text-[13px] font-bold rounded-xl transition-all"
+        :class="isTransfer ? 'active-transfer' : ''"
+        @click="setType('transfer')"
+      >
+        Transfer
+      </button>
     </div>
 
-    <!-- Kategori / Sumber -->
-    <div class="mb-4">
+    <!-- ═══ Pilihan Dompet (Untuk Pemasukan / Pengeluaran) ═══ -->
+    <div v-if="!isTransfer" class="mb-4">
+      <label class="form-label flex items-center justify-between">
+        <span>Akun / Dompet</span>
+        <span v-if="form.walletId" class="text-[11px] font-semibold text-primary">
+          Saldo: {{ fmt(walletsStore.items.find(w => w.id === form.walletId)?.balance || 0) }}
+        </span>
+      </label>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <button
+          v-for="w in walletsStore.items"
+          :key="w.id"
+          type="button"
+          class="wallet-select-btn"
+          :class="{ 'wallet-selected': form.walletId === w.id }"
+          @click="form.walletId = w.id"
+        >
+          <span class="text-base">{{ w.icon || '💵' }}</span>
+          <div class="text-left min-w-0 flex-1">
+            <p class="text-[12px] font-bold truncate leading-tight">{{ w.name }}</p>
+            <p class="text-[10px] text-ink-muted truncate">{{ fmt(w.balance) }}</p>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ Pilihan Transfer Antar Dompet (Jika Transfer) ═══ -->
+    <div v-if="isTransfer" class="mb-4 space-y-3 p-3.5 rounded-2xl bg-surface-2 border border-line">
+      <div>
+        <label class="form-label text-xs">Dari Dompet (Sumber Saldo)</label>
+        <select
+          v-model="form.walletId"
+          class="form-input text-sm font-semibold"
+        >
+          <option v-for="w in walletsStore.items" :key="w.id" :value="w.id">
+            {{ w.icon }} {{ w.name }} (Saldo: {{ fmt(w.balance) }})
+          </option>
+        </select>
+      </div>
+
+      <div class="flex justify-center -my-1">
+        <span class="w-7 h-7 rounded-full bg-surface border border-line flex items-center justify-center text-xs text-ink-muted">
+          ↓
+        </span>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Ke Dompet (Tujuan Transfer)</label>
+        <select
+          v-model="form.transferToWalletId"
+          class="form-input text-sm font-semibold"
+        >
+          <option
+            v-for="w in walletsStore.items"
+            :key="w.id"
+            :value="w.id"
+            :disabled="w.id === form.walletId"
+          >
+            {{ w.icon }} {{ w.name }} (Saldo: {{ fmt(w.balance) }})
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Kategori / Sumber (Hanya Pemasukan & Pengeluaran) -->
+    <div v-if="!isTransfer" class="mb-4">
       <label class="form-label">Kategori</label>
       <div class="relative">
         <CategoryPicker
@@ -86,7 +223,7 @@ const EXPENSE_ICONS: Record<string, string> = {
           @update:model-value="pickSource"
         />
         <CategoryPicker
-          v-else
+          v-else-if="isExpense"
           :items="master.expenseCategories"
           :model-value="form.expenseCategoryId"
           @update:model-value="(id) => (form.expenseCategoryId = id)"
@@ -94,15 +231,25 @@ const EXPENSE_ICONS: Record<string, string> = {
       </div>
     </div>
 
-    <!-- Jumlah -->
+    <!-- Jumlah Nominal + Kalkulator Built-in -->
     <div class="mb-4">
-      <label class="form-label">Jumlah</label>
+      <div class="flex items-center justify-between mb-1.5">
+        <label class="form-label m-0">Jumlah</label>
+        <button
+          type="button"
+          class="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+          @click="openCalculator"
+        >
+          <span>🧮</span> Kalkulator
+        </button>
+      </div>
+
       <div
         class="flex items-center border-[1.5px] rounded-xl overflow-hidden transition-all focus-within:ring-2"
         :style="{
           borderColor: 'var(--line)',
           background: 'var(--surface)',
-          '--tw-ring-color': 'var(--income-soft)',
+          '--tw-ring-color': isIncome ? 'var(--income-soft)' : isExpense ? 'var(--expense-soft)' : 'var(--primary-light)',
         }"
         style="border-radius: 12px;"
       >
@@ -116,7 +263,9 @@ const EXPENSE_ICONS: Record<string, string> = {
           inputmode="numeric"
           placeholder="0"
           class="flex-1 px-4 py-[13px] font-bold text-[18px] outline-none bg-transparent"
-          :style="{ color: isIncome ? 'var(--income-text)' : 'var(--expense-text)' }"
+          :style="{
+            color: isIncome ? 'var(--income-text)' : isExpense ? 'var(--expense-text)' : 'var(--primary)'
+          }"
         />
       </div>
     </div>
@@ -124,9 +273,7 @@ const EXPENSE_ICONS: Record<string, string> = {
     <!-- Periode — hanya untuk pemasukan -->
     <div v-if="isIncome" class="mb-4">
       <label class="form-label">Periode pemasukan ini</label>
-      <div
-        class="flex gap-2"
-      >
+      <div class="flex gap-2">
         <button
           v-for="p in (['daily', 'weekly', 'monthly'] as const)"
           :key="p"
@@ -168,13 +315,16 @@ const EXPENSE_ICONS: Record<string, string> = {
       <input
         v-model="form.note"
         type="text"
-        placeholder="mis. Gaji Mei 2024"
+        :placeholder="isTransfer ? 'mis. Pindah saldo ke e-wallet' : isIncome ? 'mis. Gaji pokok' : 'mis. Makan siang'"
         class="form-input"
       />
     </div>
 
-    <!-- Quick Add -->
-    <div class="mb-6" v-if="!isIncome ? master.expenseCategories.length > 0 : master.incomeSources.length > 0">
+    <!-- Quick Add (Hanya jika bukan transfer) -->
+    <div
+      v-if="!isTransfer && (isIncome ? master.incomeSources.length > 0 : master.expenseCategories.length > 0)"
+      class="mb-6"
+    >
       <label class="form-label mb-3">Quick Add</label>
       <div class="grid grid-cols-4 gap-2">
         <button
@@ -209,5 +359,129 @@ const EXPENSE_ICONS: Record<string, string> = {
         </button>
       </div>
     </div>
+
+    <!-- ════ Modal Mini Kalkulator Built-in ════ -->
+    <Teleport to="body">
+      <div v-if="showCalculator" class="calc-overlay" @click="showCalculator = false">
+        <div class="calc-modal" @click.stop>
+          <div class="flex items-center justify-between pb-3 border-b border-line mb-3">
+            <h3 class="text-sm font-bold text-ink">Kalkulator Built-in</h3>
+            <button class="text-ink-muted text-lg leading-none" @click="showCalculator = false">✕</button>
+          </div>
+
+          <!-- Display Kalkulator -->
+          <div class="calc-display mb-3 p-3 rounded-xl bg-surface-2 border border-line text-right">
+            <p class="text-xs text-ink-muted h-4 m-0">{{ calcInput || '0' }}</p>
+            <p class="text-xl font-black text-ink m-0">{{ calcInput || '0' }}</p>
+          </div>
+
+          <!-- Tombol Pad -->
+          <div class="grid grid-cols-4 gap-2">
+            <button type="button" class="calc-btn calc-btn-op" @click="clearCalc">C</button>
+            <button type="button" class="calc-btn calc-btn-op" @click="deleteCalcChar">⌫</button>
+            <button type="button" class="calc-btn calc-btn-op" @click="appendCalc('/')">÷</button>
+            <button type="button" class="calc-btn calc-btn-op" @click="appendCalc('*')">×</button>
+
+            <button type="button" class="calc-btn" @click="appendCalc('7')">7</button>
+            <button type="button" class="calc-btn" @click="appendCalc('8')">8</button>
+            <button type="button" class="calc-btn" @click="appendCalc('9')">9</button>
+            <button type="button" class="calc-btn calc-btn-op" @click="appendCalc('-')">−</button>
+
+            <button type="button" class="calc-btn" @click="appendCalc('4')">4</button>
+            <button type="button" class="calc-btn" @click="appendCalc('5')">5</button>
+            <button type="button" class="calc-btn" @click="appendCalc('6')">6</button>
+            <button type="button" class="calc-btn calc-btn-op" @click="appendCalc('+')">+</button>
+
+            <button type="button" class="calc-btn" @click="appendCalc('1')">1</button>
+            <button type="button" class="calc-btn" @click="appendCalc('2')">2</button>
+            <button type="button" class="calc-btn" @click="appendCalc('3')">3</button>
+            <button type="button" class="calc-btn calc-btn-eq row-span-2" @click="calculateResult">=</button>
+
+            <button type="button" class="calc-btn col-span-2" @click="appendCalc('0')">0</button>
+            <button type="button" class="calc-btn" @click="appendCalc('000')">000</button>
+          </div>
+
+          <button
+            type="button"
+            class="btn-primary w-full mt-3 py-2.5 text-xs font-bold"
+            @click="calculateResult"
+          >
+            Terapkan ke Jumlah
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.active-transfer {
+  background: var(--surface) !important;
+  color: var(--primary) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.wallet-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.wallet-select-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.wallet-selected {
+  border-color: var(--primary) !important;
+  background: var(--primary-light) !important;
+}
+
+/* Kalkulator Modal */
+.calc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.calc-modal {
+  width: 100%;
+  max-width: 320px;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  border: 1px solid var(--line);
+}
+.calc-btn {
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.calc-btn:active {
+  opacity: 0.7;
+}
+.calc-btn-op {
+  background: var(--surface-3);
+  color: var(--primary);
+}
+.calc-btn-eq {
+  background: var(--primary);
+  color: white;
+}
+</style>

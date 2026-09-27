@@ -11,6 +11,11 @@ import TrendLineChart from "@/components/charts/TrendLineChart.vue";
 import TransactionIcon from "@/components/transactions/TransactionIcon.vue";
 import ThemePicker from "@/components/ui/ThemePicker.vue";
 import WhatsAppShareModal from "@/components/ui/WhatsAppShareModal.vue";
+import WalletsCard from "@/components/wallets/WalletsCard.vue";
+import BudgetsOverview from "@/components/budgets/BudgetsOverview.vue";
+import SavingsGoalsCard from "@/components/savings/SavingsGoalsCard.vue";
+import DebtsCard from "@/components/debts/DebtsCard.vue";
+import { usePrivacyMode } from "@/composables/usePrivacyMode";
 
 const auth = useAuthStore();
 const summary = useSummaryStore();
@@ -18,6 +23,7 @@ const master = useMasterDataStore();
 const txStore = useTransactionsStore();
 const router = useRouter();
 const { fmt } = useCurrency();
+const { isPrivacyMode, togglePrivacy, maskValue } = usePrivacyMode();
 
 const showThemeModal = ref(false);
 const showWhatsAppModal = ref(false);
@@ -240,7 +246,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
               Saldo Bersih &middot; {{ periodView === 'monthly' ? monthLabel : '7 Hari Ini' }}
             </p>
             <h2 class="text-white font-black leading-tight" style="font-size: 30px; letter-spacing: -1px;">
-              {{ currentNet >= 0 ? '+' : '' }}{{ fmt(currentNet) }}
+              {{ currentNet >= 0 ? '+' : '' }}{{ maskValue(fmt(currentNet)) }}
             </h2>
           </div>
 
@@ -288,7 +294,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
               </div>
               <span class="text-white/75 text-[11px] font-semibold">Pemasukan</span>
             </div>
-            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ fmt(currentIncome) }}</p>
+            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ maskValue(fmt(currentIncome)) }}</p>
           </div>
 
           <!-- Pengeluaran -->
@@ -301,10 +307,13 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
               </div>
               <span class="text-white/75 text-[11px] font-semibold">Pengeluaran</span>
             </div>
-            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ fmt(currentExpense) }}</p>
+            <p class="text-white font-black text-[16px]" style="letter-spacing: -0.5px;">{{ maskValue(fmt(currentExpense)) }}</p>
           </div>
         </div>
       </div>
+
+      <!-- Kartu Dompet & Multi-Akun -->
+      <WalletsCard />
 
       <!-- Neo-Fintech Quick Actions Bar -->
       <div class="grid grid-cols-4 gap-2">
@@ -358,6 +367,9 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
         </button>
       </div>
 
+      <!-- Anggaran Bulanan per Kategori -->
+      <BudgetsOverview />
+
       <!-- Trend Arus Kas (Interactive Line Chart) -->
       <div class="card p-4">
         <div class="flex items-center justify-between mb-3">
@@ -399,6 +411,10 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
           Memuat data tren transaksi...
         </div>
       </div>
+
+      <!-- Target Tabungan & Utang Piutang -->
+      <SavingsGoalsCard />
+      <DebtsCard />
 
       <!-- Kategori Pengeluaran Bulan Ini (Donut + Progress) -->
       <div class="card p-4">

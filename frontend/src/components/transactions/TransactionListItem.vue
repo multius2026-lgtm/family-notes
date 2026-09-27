@@ -10,7 +10,16 @@ const router = useRouter();
 const { fmt } = useCurrency();
 
 const isIncome = computed(() => props.tx.type === "income");
-const name = computed(() => (isIncome.value ? props.tx.incomeSource?.name : props.tx.expenseCategory?.name) || "Lainnya");
+const isTransfer = computed(() => props.tx.type === "transfer");
+
+const name = computed(() => {
+  if (isTransfer.value) {
+    const from = props.tx.wallet?.name || "Dompet";
+    const to = props.tx.transferToWallet?.name || "Tujuan";
+    return `${from} → ${to}`;
+  }
+  return (isIncome.value ? props.tx.incomeSource?.name : props.tx.expenseCategory?.name) || "Lainnya";
+});
 
 function formatDate(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("id-ID", {
@@ -36,7 +45,14 @@ function formatDate(d: string) {
       <div class="flex items-center gap-1.5 mb-0.5">
         <p class="text-[14px] font-semibold text-ink truncate">{{ name }}</p>
         <span
-          v-if="tx.isOcr || tx.receiptUrl"
+          v-if="isTransfer"
+          class="badge-transfer"
+          title="Transfer Antar Dompet"
+        >
+          Transfer
+        </span>
+        <span
+          v-else-if="tx.isOcr || tx.receiptUrl"
           class="badge-receipt"
           title="Transaksi dibuat dari scan struk"
         >
@@ -62,6 +78,7 @@ function formatDate(d: string) {
       </div>
       <p class="text-[12px] text-ink-muted truncate">
         {{ formatDate(tx.occurredAt) }}
+        <span v-if="tx.wallet && !isTransfer" class="ml-1 text-primary">({{ tx.wallet.name }})</span>
         <span v-if="tx.note">• {{ tx.note }}</span>
       </p>
     </div>
@@ -69,18 +86,39 @@ function formatDate(d: string) {
     <div class="text-right flex-shrink-0">
       <p
         class="font-bold text-[14px]"
-        :style="{ color: isIncome ? 'var(--income-text)' : 'var(--expense-text)' }"
+        :style="{
+          color: isTransfer
+            ? 'var(--primary)'
+            : isIncome
+            ? 'var(--income-text)'
+            : 'var(--expense-text)'
+        }"
       >
-        {{ isIncome ? "+" : "-" }}{{ fmt(tx.amount) }}
+        {{ isTransfer ? "" : isIncome ? "+" : "-" }}{{ fmt(tx.amount) }}
       </p>
       <p class="text-[11px] text-ink-muted">
-        {{ isIncome ? "Pemasukan" : "Pengeluaran" }}
+        {{ isTransfer ? "Transfer" : isIncome ? "Pemasukan" : "Pengeluaran" }}
       </p>
     </div>
   </div>
 </template>
 
 <style scoped>
+.badge-transfer {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1.5px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
 .badge-receipt {
   display: inline-flex;
   align-items: center;
@@ -111,4 +149,3 @@ function formatDate(d: string) {
   line-height: 1.2;
 }
 </style>
-

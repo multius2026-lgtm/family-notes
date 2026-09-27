@@ -67,11 +67,15 @@ onMounted(async () => {
       form.receiptUrl = tx.receiptUrl || null;
       form.isOcr = Boolean(tx.isOcr);
       form.receiptItems = tx.receiptItems ? [...tx.receiptItems] : [];
+      form.walletId = tx.walletId || null;
+      form.transferToWalletId = tx.transferToWalletId || null;
     }
   } else {
     const typeParam = route.query.type as string | undefined;
     if (typeParam === "expense") {
       form.type = "expense";
+    } else if (typeParam === "transfer") {
+      form.type = "transfer";
     }
     const sourceId = route.query.sourceId as string | undefined;
     if (sourceId) {
@@ -132,6 +136,20 @@ async function save() {
     errorMsg.value = "Pilih kategori pengeluaran terlebih dahulu.";
     return;
   }
+  if (form.type === "transfer") {
+    if (!form.walletId) {
+      errorMsg.value = "Pilih dompet asal transfer.";
+      return;
+    }
+    if (!form.transferToWalletId) {
+      errorMsg.value = "Pilih dompet tujuan transfer.";
+      return;
+    }
+    if (form.walletId === form.transferToWalletId) {
+      errorMsg.value = "Dompet asal dan tujuan tidak boleh sama.";
+      return;
+    }
+  }
 
   saving.value = true;
   try {
@@ -146,6 +164,8 @@ async function save() {
       receiptUrl: form.receiptUrl || null,
       isOcr: Boolean(form.isOcr),
       receiptItems: form.receiptItems && form.receiptItems.length > 0 ? form.receiptItems : null,
+      walletId: form.walletId || null,
+      transferToWalletId: form.type === "transfer" ? (form.transferToWalletId || null) : null,
     };
 
     if (editingId.value) {
@@ -233,7 +253,16 @@ function onOcrApply(data: {
     <div class="px-5 pt-3.5 pb-1 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span
-          v-if="form.isOcr || form.receiptUrl"
+          v-if="form.type === 'transfer'"
+          class="badge-pill-transfer"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          Transfer Antar Dompet
+        </span>
+        <span
+          v-else-if="form.isOcr || form.receiptUrl"
           class="badge-pill-receipt"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -531,6 +560,19 @@ function onOcrApply(data: {
   border: 1px solid var(--line);
   font-size: 11px;
   font-weight: 600;
+}
+
+.badge-pill-transfer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .form-label-bold {

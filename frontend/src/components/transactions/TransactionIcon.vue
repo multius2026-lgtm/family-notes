@@ -3,7 +3,7 @@ import { computed } from "vue";
 
 const props = withDefaults(
   defineProps<{
-    type?: "income" | "expense";
+    type?: "income" | "expense" | "transfer";
     categoryName?: string;
     sourceName?: string;
     size?: number;
@@ -38,6 +38,9 @@ const SOURCE_STYLES: Record<string, { bg: string; color: string; icon: string }>
 };
 
 const styleInfo = computed(() => {
+  if (props.type === "transfer") {
+    return { bg: "rgba(99, 102, 241, 0.12)", color: "#6366f1", icon: "transfer" };
+  }
   if (props.type === "income") {
     const key = props.sourceName || "Lainnya";
     return SOURCE_STYLES[key] || { bg: "#e8faf3", color: "#2dbe7e", icon: "salary" };
@@ -247,6 +250,24 @@ const styleInfo = computed(() => {
       <line x1="12" y1="20" x2="12" y2="4"/>
       <line x1="6" y1="20" x2="6" y2="14"/>
       <polyline points="22 10 18 6 14 10 10 6 6 10 2 6"/>
+    </svg>
+
+    <!-- Transfer icon -->
+    <svg
+      v-else-if="styleInfo.icon === 'transfer'"
+      :width="size"
+      :height="size"
+      viewBox="0 0 24 24"
+      fill="none"
+      :stroke="styleInfo.color"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <polyline points="17 1 21 5 17 9"/>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+      <polyline points="7 23 3 19 7 15"/>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
     </svg>
 
     <!-- Default Wallet / Other -->
