@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useWalletsStore } from "@/stores/wallets";
 import { useCurrency } from "@/composables/useCurrency";
 import { usePrivacyMode } from "@/composables/usePrivacyMode";
+import BalanceCard from "@/components/ui/BalanceCard.vue";
 import type { WalletType, Wallet } from "@/types";
 import { WALLET_TYPE_LABELS } from "@/types";
 
@@ -85,91 +86,13 @@ async function deleteWallet() {
 
 <template>
   <div class="wallets-card mb-5">
-    <!-- Header: Total Saldo + Action -->
-    <div class="flex items-center justify-between mb-3 px-1">
-      <div>
-        <div class="flex items-center gap-1.5">
-          <span class="text-xs font-bold text-ink-muted uppercase tracking-wider">Total Saldo Dompet</span>
-          <button
-            type="button"
-            class="text-ink-muted hover:text-ink transition-colors text-xs"
-            :title="isPrivacyMode ? 'Tampilkan saldo' : 'Sembunyikan saldo'"
-            @click="togglePrivacy"
-          >
-            {{ isPrivacyMode ? "👁️‍🗨️" : "👁️" }}
-          </button>
-        </div>
-        <p class="text-xl font-black text-ink m-0 tracking-tight">
-          {{ maskValue(fmt(walletsStore.totalBalance)) }}
-        </p>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <!-- Tombol Transfer -->
-        <button
-          type="button"
-          class="btn-wallet-action"
-          @click="router.push({ name: 'add-transaction', query: { type: 'transfer' } })"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          Transfer
-        </button>
-
-        <!-- Tombol Tambah Dompet -->
-        <button
-          type="button"
-          class="btn-wallet-add"
-          title="Tambah akun dompet baru"
-          @click="openAddModal"
-        >
-          + Dompet
-        </button>
-      </div>
-    </div>
-
-    <!-- Horizontal Carousel Dompet -->
-    <div class="wallets-carousel">
-      <div
-        v-for="w in walletsStore.items"
-        :key="w.id"
-        class="wallet-pill-card"
-        :style="{ borderColor: w.color ? `${w.color}33` : 'var(--line)' }"
-        @click="openEditModal(w)"
-      >
-        <div class="flex items-center justify-between gap-3 mb-1.5">
-          <span
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-sm shadow-sm"
-            :style="{ background: `${w.color}22` }"
-          >
-            {{ w.icon || '💵' }}
-          </span>
-          <span
-            class="text-[10px] font-bold px-1.5 py-0.5 rounded"
-            :style="{ background: `${w.color}15`, color: w.color }"
-          >
-            {{ WALLET_TYPE_LABELS[w.type] || 'Akun' }}
-          </span>
-        </div>
-
-        <p class="text-xs font-bold text-ink truncate m-0">{{ w.name }}</p>
-        <p class="text-xs font-extrabold text-ink-muted truncate m-0 mt-0.5">
-          {{ maskValue(fmt(w.balance)) }}
-        </p>
-      </div>
-
-      <!-- Tambah Baru Card -->
-      <button
-        type="button"
-        class="wallet-pill-card wallet-card-dashed"
-        @click="openAddModal"
-      >
-        <div class="w-7 h-7 rounded-lg bg-surface-2 flex items-center justify-center text-sm text-primary mb-1">
-          +
-        </div>
-        <p class="text-[11px] font-bold text-primary m-0">Tambah</p>
-        <p class="text-[10px] text-ink-muted m-0">Akun Baru</p>
-      </button>
-    </div>
+    <!-- Hero BalanceCard per Design System -->
+    <BalanceCard
+      :totalBalance="walletsStore.totalBalance"
+      :wallets="walletsStore.items"
+      @addWallet="openAddModal"
+      @selectWallet="openEditModal"
+    />
 
     <!-- ════ Modal Tambah / Edit Dompet ════ -->
     <Teleport to="body">

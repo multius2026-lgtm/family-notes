@@ -16,6 +16,8 @@ import BudgetsOverview from "@/components/budgets/BudgetsOverview.vue";
 import SavingsGoalsCard from "@/components/savings/SavingsGoalsCard.vue";
 import DebtsCard from "@/components/debts/DebtsCard.vue";
 import { usePrivacyMode } from "@/composables/usePrivacyMode";
+import { useTransactionModal } from "@/composables/useTransactionModal";
+import TransactionRow from "@/components/ui/TransactionRow.vue";
 
 const auth = useAuthStore();
 const summary = useSummaryStore();
@@ -24,6 +26,7 @@ const txStore = useTransactionsStore();
 const router = useRouter();
 const { fmt } = useCurrency();
 const { isPrivacyMode, togglePrivacy, maskValue } = usePrivacyMode();
+const { openModal } = useTransactionModal();
 
 const showThemeModal = ref(false);
 const showWhatsAppModal = ref(false);
@@ -136,7 +139,7 @@ function setTrendRange(range: "7d" | "14d" | "30d") {
 }
 
 function quickAdd(sourceId: string) {
-  router.push({ name: "add-transaction", query: { sourceId } });
+  openModal({ sourceId, type: "income" });
 }
 
 function formatDate(d: string) {
@@ -319,7 +322,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
       <div class="grid grid-cols-4 gap-2">
         <button
           class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
-          @click="router.push({ name: 'add-transaction', query: { type: 'income' } })"
+          @click="openModal({ type: 'income' })"
         >
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: var(--income-soft); color: var(--income-text);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -331,7 +334,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
 
         <button
           class="card p-3 flex flex-col items-center gap-1.5 hover:shadow-md active:scale-95 transition-all text-center cursor-pointer"
-          @click="router.push({ name: 'add-transaction', query: { type: 'expense' } })"
+          @click="openModal({ type: 'expense' })"
         >
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center" style="background: var(--expense-soft); color: var(--expense-text);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -527,62 +530,12 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
           </template>
 
           <template v-else>
-            <div
+            <TransactionRow
               v-for="tx in recentTx"
               :key="tx.id"
-              class="tx-item py-3 flex items-center gap-3 border-b border-line last:border-b-0 cursor-pointer hover:opacity-90"
-              @click="router.push({ name: 'edit-transaction', params: { id: tx.id } })"
-            >
-              <TransactionIcon
-                :type="tx.type"
-                :categoryName="tx.expenseCategory?.name"
-                :sourceName="tx.incomeSource?.name"
-              />
-
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-1.5 mb-0.5">
-                  <p class="text-[13.5px] font-semibold text-ink truncate">
-                    {{ tx.type === 'income' ? (tx.incomeSource?.name || 'Pemasukan') : (tx.expenseCategory?.name || 'Pengeluaran') }}
-                  </p>
-                  <span
-                    v-if="tx.isOcr || tx.receiptUrl"
-                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
-                    style="background: var(--primary-light); color: var(--primary);"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 9 3-3 3 3"/><path d="M12 6v9"/><path d="M9 15h6"/></svg>
-                    Struk
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold"
-                    style="background: var(--surface-2); color: var(--ink-muted); border: 1px solid var(--line);"
-                  >
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    Manual
-                  </span>
-                </div>
-                <p class="text-[11.5px] text-ink-muted truncate">
-                  {{ formatDate(tx.occurredAt) }} {{ tx.note ? `• ${tx.note}` : '' }}
-                </p>
-              </div>
-
-              <div class="text-right flex-shrink-0">
-                <p
-                  class="font-bold text-[13.5px]"
-                  :style="{ color: tx.type === 'income' ? 'var(--income-text)' : 'var(--expense-text)' }"
-                >
-                  {{ tx.type === 'income' ? '+' : '-' }}{{ fmt(tx.amount) }}
-                </p>
-                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                  :style="{
-                    background: tx.type === 'income' ? 'var(--income-soft)' : 'var(--expense-soft)',
-                    color: tx.type === 'income' ? 'var(--income-text)' : 'var(--expense-text)'
-                  }"
-                >
-                  {{ tx.type === 'income' ? 'Masuk' : 'Keluar' }}
-                </span>
-              </div>
-            </div>
+              :tx="tx"
+              @click="openModal({ editingId: tx.id })"
+            />
           </template>
         </div>
       </div>
@@ -610,7 +563,7 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
             v-for="cat in master.expenseCategories.slice(0, 2)"
             :key="cat.id"
             class="card p-2.5 flex flex-col items-center gap-1 cursor-pointer hover:shadow-md active:scale-95 transition-all text-center"
-            @click="router.push({ name: 'add-transaction', query: { type: 'expense' } })"
+            @click="openModal({ type: 'expense' })"
           >
             <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-expense/10 text-expense">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">

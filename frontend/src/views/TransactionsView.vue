@@ -6,12 +6,15 @@ import { useWalletsStore } from "@/stores/wallets";
 import TransactionListItem from "@/components/transactions/TransactionListItem.vue";
 import CategoryDonutChart from "@/components/charts/CategoryDonutChart.vue";
 import { useCurrency } from "@/composables/useCurrency";
+import { useTransactionModal } from "@/composables/useTransactionModal";
+import { Plus } from "lucide-vue-next";
 import type { TransactionType } from "@/types";
 
 const store = useTransactionsStore();
 const master = useMasterDataStore();
 const walletsStore = useWalletsStore();
 const { fmt } = useCurrency();
+const { openModal } = useTransactionModal();
 
 const period = ref<"7" | "30" | "all">("30");
 const typeFilter = ref<TransactionType | "all">("all");
@@ -231,8 +234,17 @@ function exportCSV() {
         </div>
         <h3 class="font-bold text-ink text-[17px] mb-1">Belum ada transaksi</h3>
         <p class="text-[13px] leading-relaxed">
-          {{ searchQuery ? 'Tidak ada transaksi yang cocok dengan kata kunci pencarian.' : 'Ketuk tombol + di bawah untuk mencatat transaksi.' }}
+          {{ searchQuery ? 'Tidak ada transaksi yang cocok dengan kata kunci pencarian.' : 'Catat transaksi pemasukan atau pengeluaran harian Anda.' }}
         </p>
+        <button
+          v-if="!searchQuery"
+          type="button"
+          class="mt-3.5 px-4 py-2 rounded-[14px] bg-pine text-white text-xs font-[700] hover:bg-pine-2 active:scale-95 transition-all inline-flex items-center gap-1.5 shadow-sm"
+          @click="openModal()"
+        >
+          <Plus :size="14" :stroke-width="2.2" />
+          <span>Tambah Transaksi Baru</span>
+        </button>
       </div>
 
       <!-- Loading skeleton -->

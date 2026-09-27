@@ -4,6 +4,7 @@ import { useBudgetsStore } from "@/stores/budgets";
 import { useMasterDataStore } from "@/stores/masterData";
 import { useTransactionsStore } from "@/stores/transactions";
 import { useCurrency } from "@/composables/useCurrency";
+import BudgetCard from "@/components/ui/BudgetCard.vue";
 import type { Budget } from "@/types";
 
 const budgetsStore = useBudgetsStore();
@@ -120,61 +121,16 @@ async function removeBudget(id: string) {
     </div>
 
     <!-- List Anggaran -->
-    <div v-else class="space-y-3">
-      <div
+    <div v-else class="space-y-2.5">
+      <BudgetCard
         v-for="b in enrichedBudgets"
         :key="b.id"
-        class="budget-item-box"
-      >
-        <div class="flex items-center justify-between mb-1.5">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="text-base">{{ b.category?.icon || '📦' }}</span>
-            <span class="text-xs font-bold text-ink truncate">{{ b.category?.name || 'Kategori' }}</span>
-          </div>
-
-          <div class="flex items-center gap-2 shrink-0">
-            <span
-              v-if="b.pct > 100"
-              class="budget-pill-over"
-            >
-              Melebihi {{ b.pct }}%
-            </span>
-            <span v-else class="text-[11px] font-bold text-ink-muted">
-              {{ b.pct }}%
-            </span>
-            <button
-              type="button"
-              class="text-ink-muted hover:text-rose-500 text-xs px-1"
-              title="Hapus anggaran"
-              @click="removeBudget(b.id)"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="budget-progress-track">
-          <div
-            class="budget-progress-bar"
-            :style="{
-              width: `${Math.min(100, b.pct)}%`,
-              backgroundColor: b.pct > 100 ? 'var(--expense)' : b.pct > 80 ? 'var(--gold)' : 'var(--primary)'
-            }"
-          ></div>
-        </div>
-
-        <!-- Rincian Jumlah -->
-        <div class="flex items-center justify-between text-[11px] mt-1.5">
-          <span class="text-ink-muted font-medium">Terpakai: {{ fmt(b.spent) }}</span>
-          <span
-            class="font-bold"
-            :style="{ color: b.remaining < 0 ? 'var(--expense)' : 'var(--ink)' }"
-          >
-            {{ b.remaining < 0 ? `Lebih ${fmt(Math.abs(b.remaining))}` : `Sisa ${fmt(b.remaining)}` }}
-          </span>
-        </div>
-      </div>
+        :categoryName="b.category?.name || 'Kategori'"
+        :categoryIcon="b.category?.icon || '📦'"
+        :budgetAmount="b.amount"
+        :spentAmount="b.spent"
+        @click="openSetModal(b)"
+      />
     </div>
 
     <!-- ════ Modal Pasang Anggaran ════ -->

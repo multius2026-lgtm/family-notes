@@ -1,11 +1,13 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useTransactionModal } from "@/composables/useTransactionModal";
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const { openModal } = useTransactionModal();
 
 const initials = computed(() => {
   const name = auth.user?.name || auth.user?.email || "U";
@@ -85,7 +87,7 @@ const navItems = [
 
     <!-- Add button -->
     <div class="sn-add-wrap">
-      <button class="sn-add-btn" title="Tambah Transaksi" @click="router.push({ name: 'add-transaction' })">
+      <button class="sn-add-btn" title="Tambah Transaksi" @click="openModal()">
         <span class="sn-add-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14"/><path d="M5 12h14"/>

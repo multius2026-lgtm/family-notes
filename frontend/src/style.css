@@ -1,127 +1,107 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
-  /* Light theme */
-  --paper: #f0f2f8;
-  --surface: #ffffff;
-  --surface-2: #f5f6fb;
-  --surface-3: #eef0f8;
-  --line: #e4e8f2;
-  --ink: #111827;
-  --ink-muted: #6b7489;
-  --ink-light: #a8b0c4;
+  /* ── Design System Official Tokens ── */
+  --bg: #F4F2EC;
+  --surface: #FFFFFF;
+  --ink: #16211C;
+  --ink-soft: #5B6660;
+  --ink-faint: #8B948E;
+  --line: #E7E3D8;
+  --line-soft: #EFECE2;
 
-  /* Green brand */
-  --primary: #059669;
-  --primary-dark: #047857;
-  --primary-light: rgba(5, 150, 105, 0.1);
-  --primary-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  --primary-glow: 0 8px 24px rgba(5, 150, 105, 0.35);
+  /* Brand / Accent */
+  --pine: #123B31;
+  --pine-2: #1C5445;
+  --pine-tint: #E4EFE9;
+  --gold: #B8933F;
+  --gold-tint: #F6EEDC;
 
-  /* Income */
-  --income: #10b981;
-  --income-soft: rgba(16, 185, 129, 0.1);
-  --income-text: #047857;
+  /* Semantic Status */
+  --income: #2F6B4F;
+  --income-tint: #E7F1E8;
+  --expense: #B24B3C;
+  --expense-tint: #F7EAE5;
+  --warn: #A87A22;
+  --warn-tint: #F6EEDB;
 
-  /* Expense */
-  --expense: #ef4444;
-  --expense-soft: rgba(239, 68, 68, 0.1);
-  --expense-text: #b91c1c;
+  /* Fonts */
+  --font-ui: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
 
-  /* Gold/Warning */
-  --gold: #f59e0b;
-  --gold-soft: rgba(245, 158, 11, 0.1);
-  --gold-ink: #ffffff;
+  /* Radius */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-sheet: 26px;
 
-  --danger: #ef4444;
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
-  --shadow-card-hover: 0 4px 8px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.1);
-  --shadow-btn: 0 4px 20px rgba(5, 150, 105, 0.4);
-  --shadow-nav: 0 -2px 24px rgba(0,0,0,0.08);
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(18,25,21,.04), 0 6px 20px rgba(18,25,21,.06);
+  --shadow-btn: 0 4px 14px rgba(18, 59, 49, 0.22);
+  --shadow-nav: 0 -2px 20px rgba(18, 25, 21, 0.05);
+
+  /* Legacy / helper aliases */
+  --paper: var(--bg);
+  --surface-2: #FAF8F2;
+  --surface-3: #EFECE2;
+  --ink-muted: var(--ink-soft);
+  --ink-light: var(--ink-faint);
+  --primary: var(--pine);
+  --primary-dark: var(--pine-2);
+  --primary-light: var(--pine-tint);
+  --primary-gradient: linear-gradient(155deg, var(--pine) 0%, var(--pine-2) 100%);
+  --primary-glow: 0 8px 24px rgba(18, 59, 49, 0.25);
+  --income-soft: var(--income-tint);
+  --income-text: var(--income);
+  --expense-soft: var(--expense-tint);
+  --expense-text: var(--expense);
+  --gold-soft: var(--gold-tint);
+  --gold-ink: var(--gold);
+  --danger: var(--expense);
 
   /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.6);
-  --glass-blur: blur(20px);
-}
-
-/* ── Color Themes ── */
-[data-theme="blue"] {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-light: rgba(37, 99, 235, 0.1);
-  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  --primary-glow: 0 8px 24px rgba(37, 99, 235, 0.35);
-  --shadow-btn: 0 4px 20px rgba(37, 99, 235, 0.4);
-}
-
-[data-theme="purple"] {
-  --primary: #7c3aed;
-  --primary-dark: #6d28d9;
-  --primary-light: rgba(124, 58, 237, 0.1);
-  --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  --primary-glow: 0 8px 24px rgba(124, 58, 237, 0.35);
-  --shadow-btn: 0 4px 20px rgba(124, 58, 237, 0.4);
-}
-
-[data-theme="orange"] {
-  --primary: #ea580c;
-  --primary-dark: #c2410c;
-  --primary-light: rgba(234, 88, 12, 0.1);
-  --primary-gradient: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
-  --primary-glow: 0 8px 24px rgba(234, 88, 12, 0.35);
-  --shadow-btn: 0 4px 20px rgba(234, 88, 12, 0.4);
-}
-
-[data-theme="rose"] {
-  --primary: #e11d48;
-  --primary-dark: #be123c;
-  --primary-light: rgba(225, 29, 72, 0.1);
-  --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
-  --primary-glow: 0 8px 24px rgba(225, 29, 72, 0.35);
-  --shadow-btn: 0 4px 20px rgba(225, 29, 72, 0.4);
-}
-
-[data-theme="teal"] {
-  --primary: #0d9488;
-  --primary-dark: #0f766e;
-  --primary-light: rgba(13, 148, 136, 0.1);
-  --primary-gradient: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
-  --primary-glow: 0 8px 24px rgba(13, 148, 136, 0.35);
-  --shadow-btn: 0 4px 20px rgba(13, 148, 136, 0.4);
+  --glass-bg: rgba(244, 242, 236, 0.88);
+  --glass-border: var(--line);
+  --glass-blur: blur(16px);
 }
 
 [data-theme="dark"] {
-  --paper: #0a0f1e;
-  --surface: #111827;
-  --surface-2: #1a2236;
-  --surface-3: #1e2d40;
-  --line: #1f2d42;
-  --ink: #f1f5f9;
-  --ink-muted: #7c8faa;
-  --ink-light: #4a5568;
-  --primary: #10b981;
-  --primary-dark: #059669;
-  --primary-light: rgba(16, 185, 129, 0.12);
-  --primary-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  --primary-glow: 0 8px 24px rgba(16, 185, 129, 0.3);
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
-  --shadow-card-hover: 0 4px 8px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.4);
-  --shadow-btn: 0 4px 20px rgba(16, 185, 129, 0.4);
-  --shadow-nav: 0 -2px 24px rgba(0,0,0,0.3);
-  --glass-bg: rgba(17, 24, 39, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --income-soft: rgba(16, 185, 129, 0.12);
-  --income-text: #34d399;
-  --expense-soft: rgba(239, 68, 68, 0.12);
-  --expense-text: #f87171;
-}
+  --bg: #0E1613;
+  --surface: #141F1A;
+  --surface-2: #192722;
+  --surface-3: #20312B;
+  --ink: #F2F5F3;
+  --ink-soft: #9BA8A1;
+  --ink-faint: #607068;
+  --line: #22322B;
+  --line-soft: #1B2923;
 
+  --pine: #2B7A66;
+  --pine-2: #38957D;
+  --pine-tint: #182B24;
+  --gold: #D4A94B;
+  --gold-tint: #2B2312;
+
+  --income: #439E76;
+  --income-tint: #132B20;
+  --expense: #D96554;
+  --expense-tint: #2E1714;
+  --warn: #D19F38;
+  --warn-tint: #2C210E;
+
+  --primary: #2B7A66;
+  --primary-dark: #38957D;
+  --primary-light: #182B24;
+  --primary-gradient: linear-gradient(155deg, #1C5445 0%, #2B7A66 100%);
+
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 6px 24px rgba(0,0,0,0.4);
+  --glass-bg: rgba(20, 31, 26, 0.88);
+  --glass-border: var(--line);
+}
 
 /* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -132,13 +112,28 @@ html, body, #app {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Interactive elements feedback */
+button {
+  transition: transform 0.15s ease, background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+button:active {
+  transform: scale(0.98);
+}
+
+/* Display font for big numbers */
+.font-display {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
 }
 
 #app {

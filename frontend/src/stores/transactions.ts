@@ -7,9 +7,9 @@ interface NewTransactionInput {
   type: TransactionType;
   amount: number;
   periodType: PeriodType;
-  incomeSourceId?: string;
-  expenseCategoryId?: string;
-  note?: string;
+  incomeSourceId?: string | null;
+  expenseCategoryId?: string | null;
+  note?: string | null;
   occurredAt: string;
   receiptUrl?: string | null;
   isOcr?: boolean;

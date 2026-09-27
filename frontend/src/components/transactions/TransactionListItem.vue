@@ -1,106 +1,18 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRouter } from "vue-router";
-import { useCurrency } from "@/composables/useCurrency";
-import TransactionIcon from "@/components/transactions/TransactionIcon.vue";
+import { useTransactionModal } from "@/composables/useTransactionModal";
+import TransactionRow from "@/components/ui/TransactionRow.vue";
 import type { Transaction } from "@/types";
 
 const props = defineProps<{ tx: Transaction }>();
-const router = useRouter();
-const { fmt } = useCurrency();
+const { openModal } = useTransactionModal();
 
-const isIncome = computed(() => props.tx.type === "income");
-const isTransfer = computed(() => props.tx.type === "transfer");
-
-const name = computed(() => {
-  if (isTransfer.value) {
-    const from = props.tx.wallet?.name || "Dompet";
-    const to = props.tx.transferToWallet?.name || "Tujuan";
-    return `${from} → ${to}`;
-  }
-  return (isIncome.value ? props.tx.incomeSource?.name : props.tx.expenseCategory?.name) || "Lainnya";
-});
-
-function formatDate(d: string) {
-  return new Date(d + "T00:00:00").toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+function handleClick() {
+  openModal({ editingId: props.tx.id });
 }
 </script>
 
 <template>
-  <div
-    class="tx-item"
-    @click="router.push({ name: 'edit-transaction', params: { id: tx.id } })"
-  >
-    <TransactionIcon
-      :type="tx.type"
-      :categoryName="tx.expenseCategory?.name"
-      :sourceName="tx.incomeSource?.name"
-    />
-
-    <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-1.5 mb-0.5">
-        <p class="text-[14px] font-semibold text-ink truncate">{{ name }}</p>
-        <span
-          v-if="isTransfer"
-          class="badge-transfer"
-          title="Transfer Antar Dompet"
-        >
-          Transfer
-        </span>
-        <span
-          v-else-if="tx.isOcr || tx.receiptUrl"
-          class="badge-receipt"
-          title="Transaksi dibuat dari scan struk"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="m9 9 3-3 3 3"/>
-            <path d="M12 6v9"/>
-            <path d="M9 15h6"/>
-          </svg>
-          Struk
-        </span>
-        <span
-          v-else
-          class="badge-manual"
-          title="Transaksi diinput manual"
-        >
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          Manual
-        </span>
-      </div>
-      <p class="text-[12px] text-ink-muted truncate">
-        {{ formatDate(tx.occurredAt) }}
-        <span v-if="tx.wallet && !isTransfer" class="ml-1 text-primary">({{ tx.wallet.name }})</span>
-        <span v-if="tx.note">• {{ tx.note }}</span>
-      </p>
-    </div>
-
-    <div class="text-right flex-shrink-0">
-      <p
-        class="font-bold text-[14px]"
-        :style="{
-          color: isTransfer
-            ? 'var(--primary)'
-            : isIncome
-            ? 'var(--income-text)'
-            : 'var(--expense-text)'
-        }"
-      >
-        {{ isTransfer ? "" : isIncome ? "+" : "-" }}{{ fmt(tx.amount) }}
-      </p>
-      <p class="text-[11px] text-ink-muted">
-        {{ isTransfer ? "Transfer" : isIncome ? "Pemasukan" : "Pengeluaran" }}
-      </p>
-    </div>
-  </div>
+  <TransactionRow :tx="tx" @click="handleClick" />
 </template>
 
 <style scoped>

@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import BottomNav from "@/components/ui/BottomNav.vue";
 import SideNav from "@/components/ui/SideNav.vue";
+import TransactionModal from "@/components/transactions/TransactionModal.vue";
 
 const route = useRoute();
 const showNav = computed(
@@ -25,5 +26,8 @@ const showNav = computed(
 
     <!-- Bottom dock: mobile only (hidden on md+ via CSS) -->
     <BottomNav v-if="showNav" />
+
+    <!-- Global Transaction Modal / Bottom Sheet -->
+    <TransactionModal />
   </div>
 </template>
