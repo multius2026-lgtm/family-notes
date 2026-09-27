@@ -2,26 +2,8 @@
 import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
 import type { Transaction } from "@/types";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ArrowLeftRight,
-  Receipt,
-  Edit3,
-  Utensils,
-  Car,
-  ShoppingBag,
-  Zap,
-  Film,
-  HeartPulse,
-  GraduationCap,
-  Package,
-  Briefcase,
-  Gift,
-  TrendingUp,
-  CreditCard,
-  DollarSign
-} from "lucide-vue-next";
+import { getCategoryIconComponent } from "@/composables/useCategoryIcon";
+import { ArrowLeftRight, Receipt, Edit3 } from "lucide-vue-next";
 
 const props = defineProps<{
   tx: Transaction;
@@ -46,7 +28,7 @@ const displayName = computed(() => {
   if (isIncome.value) {
     return props.tx.incomeSource?.name || "Pemasukan Lainnya";
   }
-  return props.tx.expenseCategory?.name || "Pengeluaran";
+  return props.tx.expenseCategory?.name || props.tx.category || "Pengeluaran";
 });
 
 function formatDate(d: string) {
@@ -56,26 +38,17 @@ function formatDate(d: string) {
   });
 }
 
-// Icon selector per category/source
+// Icon selector per category/source with comprehensive fallback
 const categoryIconComponent = computed(() => {
-  if (isTransfer.value) return ArrowLeftRight;
+  if (isTransfer.value) return getCategoryIconComponent("transfer", "transfer");
   if (isIncome.value) {
-    const srcName = props.tx.incomeSource?.name?.toLowerCase() || "";
-    if (srcName.includes("gaji")) return Briefcase;
-    if (srcName.includes("freelance") || srcName.includes("proyek")) return Briefcase;
-    if (srcName.includes("bonus") || srcName.includes("thr")) return Gift;
-    if (srcName.includes("investasi") || srcName.includes("dividen")) return TrendingUp;
-    return ArrowUpRight;
+    const src = props.tx.incomeSource;
+    const identifier = [src?.name, src?.icon].filter(Boolean).join(" ");
+    return getCategoryIconComponent(identifier, "income");
   }
-  const catName = props.tx.expenseCategory?.name?.toLowerCase() || "";
-  if (catName.includes("makan") || catName.includes("minum") || catName.includes("kuliner")) return Utensils;
-  if (catName.includes("transport") || catName.includes("bensin") || catName.includes("ojek")) return Car;
-  if (catName.includes("belanja") || catName.includes("pasar")) return ShoppingBag;
-  if (catName.includes("tagihan") || catName.includes("listrik") || catName.includes("air")) return Zap;
-  if (catName.includes("hiburan") || catName.includes("nonton")) return Film;
-  if (catName.includes("sehat") || catName.includes("obat")) return HeartPulse;
-  if (catName.includes("didik") || catName.includes("kursus")) return GraduationCap;
-  return ArrowDownLeft;
+  const exp = props.tx.expenseCategory;
+  const identifier = [exp?.name, exp?.icon, props.tx.category].filter(Boolean).join(" ");
+  return getCategoryIconComponent(identifier, "expense");
 });
 </script>
 

@@ -10,10 +10,16 @@ export interface ThemeOption {
 
 export const AVAILABLE_THEMES: ThemeOption[] = [
   {
+    id: "pine",
+    name: "Pine Forest (Default)",
+    primaryColor: "#123B31",
+    gradient: "linear-gradient(135deg, #123B31 0%, #1C5445 100%)",
+  },
+  {
     id: "green",
     name: "Emerald Green",
-    primaryColor: "#2dbe7e",
-    gradient: "linear-gradient(135deg, #2dbe7e 0%, #1a9e65 100%)",
+    primaryColor: "#059669",
+    gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
   },
   {
     id: "blue",
@@ -24,20 +30,20 @@ export const AVAILABLE_THEMES: ThemeOption[] = [
   {
     id: "purple",
     name: "Royal Purple",
-    primaryColor: "#8b5cf6",
-    gradient: "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)",
+    primaryColor: "#7c3aed",
+    gradient: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
   },
   {
     id: "orange",
     name: "Sunset Orange",
-    primaryColor: "#f97316",
-    gradient: "linear-gradient(135deg, #fb923c 0%, #ea580c 100%)",
+    primaryColor: "#ea580c",
+    gradient: "linear-gradient(135deg, #f97316 0%, #c2410c 100%)",
   },
   {
     id: "rose",
     name: "Rose Berry",
-    primaryColor: "#f43f5e",
-    gradient: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)",
+    primaryColor: "#e11d48",
+    gradient: "linear-gradient(135deg, #f43f5e 0%, #be123c 100%)",
   },
   {
     id: "teal",
@@ -48,13 +54,27 @@ export const AVAILABLE_THEMES: ThemeOption[] = [
   {
     id: "dark",
     name: "Midnight Dark",
-    primaryColor: "#10b981",
-    gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    primaryColor: "#2B7A66",
+    gradient: "linear-gradient(135deg, #141F1A 0%, #20312B 100%)",
+    isDark: true,
+  },
+  {
+    id: "dark-blue",
+    name: "Deep Ocean (Gelap)",
+    primaryColor: "#3b82f6",
+    gradient: "linear-gradient(135deg, #111a2e 0%, #1e2e4f 100%)",
+    isDark: true,
+  },
+  {
+    id: "dark-purple",
+    name: "Night Purple (Gelap)",
+    primaryColor: "#8b5cf6",
+    gradient: "linear-gradient(135deg, #1a122c 0%, #2e214f 100%)",
     isDark: true,
   },
 ];
 
-const currentTheme = ref<string>(localStorage.getItem("app-theme") || "green");
+const currentTheme = ref<string>(localStorage.getItem("app-theme") || "pine");
 
 export function useTheme() {
   function setTheme(themeId: string) {
@@ -62,17 +82,22 @@ export function useTheme() {
     localStorage.setItem("app-theme", themeId);
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-theme", themeId);
-      // Update browser theme-color meta tag
       const active = AVAILABLE_THEMES.find((t) => t.id === themeId);
+      if (active?.isDark) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      // Update browser theme-color meta tag
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta && active) {
-        meta.setAttribute("content", active.primaryColor);
+        meta.setAttribute("content", active.isDark ? "#0E1613" : active.primaryColor);
       }
     }
   }
 
   function initTheme() {
-    const saved = localStorage.getItem("app-theme") || "green";
+    const saved = localStorage.getItem("app-theme") || "pine";
     setTheme(saved);
   }
 

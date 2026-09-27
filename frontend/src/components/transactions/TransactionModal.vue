@@ -5,6 +5,7 @@ import { useTransactionsStore } from "@/stores/transactions";
 import { useMasterDataStore } from "@/stores/masterData";
 import { useWalletsStore } from "@/stores/wallets";
 import { useCurrency } from "@/composables/useCurrency";
+import { getCategoryIconComponent } from "@/composables/useCategoryIcon";
 import ReceiptScanner from "@/components/transactions/ReceiptScanner.vue";
 import type { TransactionType, PeriodType, ReceiptItem } from "@/types";
 import {
@@ -539,9 +540,9 @@ async function handleDelete() {
                   :class="form.expenseCategoryId === cat.id ? 'border-expense bg-expense-tint text-expense font-[700]' : 'border-line bg-surface hover:bg-bg text-ink font-[600]'"
                   @click="form.expenseCategoryId = cat.id"
                 >
-                  <span class="w-6 h-6 rounded-[6px] bg-surface flex items-center justify-center text-xs border border-line-soft">
-                    {{ cat.icon || '🏷️' }}
-                  </span>
+                  <div class="w-6 h-6 rounded-[6px] bg-surface flex items-center justify-center border border-line-soft flex-shrink-0">
+                    <component :is="getCategoryIconComponent(`${cat.name} ${cat.icon || ''}`, 'expense')" :size="13" :stroke-width="2" />
+                  </div>
                   <span class="text-[12px] truncate">{{ cat.name }}</span>
                 </button>
               </div>
@@ -561,9 +562,9 @@ async function handleDelete() {
                   :class="form.incomeSourceId === src.id ? 'border-income bg-income-tint text-income font-[700]' : 'border-line bg-surface hover:bg-bg text-ink font-[600]'"
                   @click="form.incomeSourceId = src.id; form.periodType = src.defaultPeriodType"
                 >
-                  <span class="w-6 h-6 rounded-[6px] bg-surface flex items-center justify-center text-xs border border-line-soft">
-                    {{ src.icon || '💰' }}
-                  </span>
+                  <div class="w-6 h-6 rounded-[6px] bg-surface flex items-center justify-center border border-line-soft flex-shrink-0">
+                    <component :is="getCategoryIconComponent(`${src.name} ${src.icon || ''}`, 'income')" :size="13" :stroke-width="2" />
+                  </div>
                   <span class="text-[12px] truncate">{{ src.name }}</span>
                 </button>
               </div>

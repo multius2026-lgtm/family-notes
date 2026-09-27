@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
+import { getCategoryIconComponent } from "@/composables/useCategoryIcon";
 import { CheckCircle2, AlertTriangle, AlertCircle } from "lucide-vue-next";
 
 const props = defineProps<{
@@ -65,8 +66,8 @@ const statusInfo = computed(() => {
     <!-- Top info -->
     <div class="flex items-center justify-between gap-2 mb-2">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="w-7 h-7 rounded-[8px] bg-bg flex items-center justify-center text-sm border border-line-soft">
-          {{ categoryIcon || '🏷️' }}
+        <span class="w-7 h-7 rounded-[8px] bg-bg flex items-center justify-center text-ink border border-line-soft flex-shrink-0">
+          <component :is="getCategoryIconComponent(categoryName || categoryIcon, 'expense')" :size="15" :stroke-width="1.8" />
         </span>
         <h4 class="text-[12.5px] font-[800] text-ink truncate font-ui leading-tight">
           {{ categoryName }}

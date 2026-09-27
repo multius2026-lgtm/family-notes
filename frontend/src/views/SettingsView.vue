@@ -8,6 +8,7 @@ import { useTransactionsStore } from "@/stores/transactions";
 import { useCurrency } from "@/composables/useCurrency";
 import { usePrivacyMode } from "@/composables/usePrivacyMode";
 import { useTheme, AVAILABLE_THEMES } from "@/composables/useTheme";
+import { getCategoryIconComponent } from "@/composables/useCategoryIcon";
 import type { Wallet, WalletType, IncomeSource, ExpenseCategory, PeriodType } from "@/types";
 import { WALLET_TYPE_LABELS } from "@/types";
 import {
@@ -728,7 +729,9 @@ onMounted(async () => {
                 class="flex items-center justify-between p-2.5 rounded-[12px] border border-line bg-bg"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="text-base">{{ cat.icon || '🏷️' }}</span>
+                  <div class="w-7 h-7 rounded-[8px] bg-surface flex items-center justify-center text-ink border border-line-soft flex-shrink-0">
+                    <component :is="getCategoryIconComponent(cat.name || cat.icon, 'expense')" :size="15" :stroke-width="1.8" />
+                  </div>
                   <span class="text-xs font-[700] text-ink truncate">{{ cat.name }}</span>
                 </div>
                 <div class="flex items-center gap-1">
@@ -758,7 +761,9 @@ onMounted(async () => {
                 class="flex items-center justify-between p-2.5 rounded-[12px] border border-line bg-bg"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="text-base">{{ src.icon || '💰' }}</span>
+                  <div class="w-7 h-7 rounded-[8px] bg-surface flex items-center justify-center text-ink border border-line-soft flex-shrink-0">
+                    <component :is="getCategoryIconComponent(src.name || src.icon, 'income')" :size="15" :stroke-width="1.8" />
+                  </div>
                   <span class="text-xs font-[700] text-ink truncate">{{ src.name }}</span>
                 </div>
                 <div class="flex items-center gap-1">

@@ -26,7 +26,7 @@ const { openModal } = useTransactionModal();
     <!-- Background Gradient: pine -> pine-2 (155deg) per Design System -->
     <div
       class="absolute inset-0 pointer-events-none"
-      style="background: linear-gradient(155deg, #123B31 0%, #1C5445 100%);"
+      style="background: var(--primary-gradient);"
     ></div>
 
     <!-- Soft ambient background lights -->

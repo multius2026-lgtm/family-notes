@@ -4,6 +4,7 @@ import { useBudgetsStore } from "@/stores/budgets";
 import { useMasterDataStore } from "@/stores/masterData";
 import { useTransactionsStore } from "@/stores/transactions";
 import { useCurrency } from "@/composables/useCurrency";
+import { getCategoryEmoji } from "@/composables/useCategoryIcon";
 import BudgetCard from "@/components/ui/BudgetCard.vue";
 import type { Budget } from "@/types";
 
@@ -151,7 +152,7 @@ async function removeBudget(id: string) {
                   :key="cat.id"
                   :value="cat.id"
                 >
-                  {{ cat.icon }} {{ cat.name }}
+                  {{ getCategoryEmoji(cat.name || cat.icon, 'expense') }} {{ cat.name }}
                 </option>
               </select>
             </div>

@@ -8,7 +8,6 @@ import { useTransactionsStore } from "@/stores/transactions";
 import { useCurrency } from "@/composables/useCurrency";
 import CategoryDonutChart from "@/components/charts/CategoryDonutChart.vue";
 import TrendLineChart from "@/components/charts/TrendLineChart.vue";
-import TransactionIcon from "@/components/transactions/TransactionIcon.vue";
 import ThemePicker from "@/components/ui/ThemePicker.vue";
 import WhatsAppShareModal from "@/components/ui/WhatsAppShareModal.vue";
 import WalletsCard from "@/components/wallets/WalletsCard.vue";

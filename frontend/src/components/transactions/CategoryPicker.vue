@@ -1,24 +1,11 @@
 <script setup lang="ts">
+import { getCategoryEmoji } from "@/composables/useCategoryIcon";
+
 defineProps<{
   items: { id: string; name: string; icon: string | null }[];
   modelValue: string | null;
 }>();
 const emit = defineEmits<{ (e: "update:modelValue", id: string): void }>();
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Makanan": "🍔",
-  "Makanan & Minuman": "🍔",
-  "Transportasi": "🚗",
-  "Belanja": "🛍️",
-  "Tagihan": "💡",
-  "Lainnya": "📦",
-  "Hiburan": "🎬",
-  "Kesehatan": "💊",
-  "Gaji": "💰",
-  "Freelance": "💼",
-  "Bonus": "🎁",
-  "Investasi": "📈",
-};
 </script>
 
 <template>
@@ -30,7 +17,7 @@ const CATEGORY_ICONS: Record<string, string> = {
     >
       <option value="" disabled>Pilih kategori...</option>
       <option v-for="item in items" :key="item.id" :value="item.id">
-        {{ CATEGORY_ICONS[item.name] || '📁' }} {{ item.name }}
+        {{ getCategoryEmoji(`${item.name} ${item.icon || ''}`) }} {{ item.name }}
       </option>
     </select>
     <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted">
