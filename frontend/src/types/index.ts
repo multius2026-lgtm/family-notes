@@ -22,6 +22,12 @@ export interface ExpenseCategory {
   isDefault: boolean;
 }
 
+export interface ReceiptItem {
+  name: string;
+  price: number | null;
+  qty?: number;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
@@ -33,6 +39,9 @@ export interface Transaction {
   note: string | null;
   occurredAt: string; // YYYY-MM-DD
   createdAt: string;
+  receiptUrl: string | null;   // URL foto struk di Supabase Storage
+  isOcr: boolean;              // true = input via scan struk
+  receiptItems?: ReceiptItem[] | null; // Rincian item dari struk belanja
   incomeSource?: IncomeSource | null;
   expenseCategory?: ExpenseCategory | null;
 }

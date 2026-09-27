@@ -524,9 +524,27 @@ const DONUT_COLORS = ["#2dbe7e", "#f8a730", "#f05a5a", "#6c63ff", "#00bcd4", "#f
               />
 
               <div class="flex-1 min-w-0">
-                <p class="text-[13.5px] font-semibold text-ink truncate">
-                  {{ tx.type === 'income' ? (tx.incomeSource?.name || 'Pemasukan') : (tx.expenseCategory?.name || 'Pengeluaran') }}
-                </p>
+                <div class="flex items-center gap-1.5 mb-0.5">
+                  <p class="text-[13.5px] font-semibold text-ink truncate">
+                    {{ tx.type === 'income' ? (tx.incomeSource?.name || 'Pemasukan') : (tx.expenseCategory?.name || 'Pengeluaran') }}
+                  </p>
+                  <span
+                    v-if="tx.isOcr || tx.receiptUrl"
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                    style="background: var(--primary-light); color: var(--primary);"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 9 3-3 3 3"/><path d="M12 6v9"/><path d="M9 15h6"/></svg>
+                    Struk
+                  </span>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                    style="background: var(--surface-2); color: var(--ink-muted); border: 1px solid var(--line);"
+                  >
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Manual
+                  </span>
+                </div>
                 <p class="text-[11.5px] text-ink-muted truncate">
                   {{ formatDate(tx.occurredAt) }} {{ tx.note ? `• ${tx.note}` : '' }}
                 </p>

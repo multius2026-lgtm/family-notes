@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, boolean, timestamp, date, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, numeric, boolean, timestamp, date, pgEnum, index, jsonb } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
@@ -75,6 +75,9 @@ export const transactions = pgTable(
     expenseCategoryId: uuid("expense_category_id").references(() => expenseCategories.id, { onDelete: "set null" }),
     note: text("note"),
     occurredAt: date("occurred_at").notNull(), // tanggal transaksi dicatat/diterima (bisa input mundur)
+    receiptUrl: text("receipt_url"),
+    isOcr: boolean("is_ocr").default(false).notNull(),
+    receiptItems: jsonb("receipt_items"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => ({

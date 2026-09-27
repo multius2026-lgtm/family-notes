@@ -13,6 +13,12 @@
 import { ref } from "vue";
 import Tesseract from "tesseract.js";
 
+export interface ReceiptItem {
+  name: string;
+  price: number | null;
+  qty?: number;
+}
+
 export interface OcrResult {
   rawText: string;
   storeName: string | null;
@@ -20,6 +26,7 @@ export interface OcrResult {
   date: string | null;        // format YYYY-MM-DD
   confidence: number;         // 0–100
   isConfident: boolean;       // true jika confidence >= threshold
+  items: ReceiptItem[];       // daftar rincian item struk
 }
 
 const CONFIDENCE_THRESHOLD = 55; // % minimum untuk auto-fill
@@ -173,6 +180,104 @@ function parseStoreName(text: string): string | null {
   return null;
 }
 
+/** Cari daftar rincian barang/item belanja dari teks struk */
+export function parseReceiptItems(text: string): ReceiptItem[] {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length >= 2);
+
+  const nonItemKeywords = [
+    "total", "grand total", "subtotal", "sub total", "bayar", "tagihan", "jumlah",
+    "kembali", "kembalian", "change", "tunai", "cash", "debit", "kredit", "credit",
+    "bca", "mandiri", "bri", "bni", "qris", "gopay", "ovo", "dana", "shopee",
+    "diskon", "discount", "potongan", "hemat", "promo", "voucher", "poin",
+    "ppn", "pajak", "tax", "pb1", "biaya",
+    "kasir", "cashier", "operator", "struk", "receipt", "nota", "invoice",
+    "tanggal", "date", "waktu", "time", "jam",
+    "terima kasih", "thank you", "selamat datang", "welcome",
+    "call center", "layanan konsumen", "sms", "wa", "whatsapp", "website", "http", "www.",
+    "npwp", "pos", "terminal", "merchant", "toko", "cabang", "jl.", "jalan",
+    "item:", "items:", "qty:", "pcs:"
+  ];
+
+  const items: ReceiptItem[] = [];
+  const seen = new Set<string>();
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lower = line.toLowerCase();
+
+    // Lewati garis pemisah seperti ==== atau ----
+    if (/^[=\-_*.#\s]{3,}$/.test(line)) continue;
+
+    // Lewati jika diawali kata non-item
+    const isExcluded = nonItemKeywords.some((kw) => {
+      return lower.startsWith(kw) || (lower.includes(kw) && /(total|subtotal|kembali|tunai|kasir|terima kasih|ppn|pajak|diskon)/.test(kw));
+    });
+    if (isExcluded) continue;
+
+    // Pattern 1: Baris mengandung nama dan harga di akhir (mis. "INDOMILK 250ML 6.500")
+    let qty: number | undefined = undefined;
+    let cleanLine = line;
+
+    const qtyMatch = cleanLine.match(/^(\d{1,2})\s*(?:x|pcs|bh|btl|ptg|pack)?\s+(.*)/i);
+    if (qtyMatch) {
+      const q = parseInt(qtyMatch[1], 10);
+      if (q > 0 && q <= 99) {
+        qty = q;
+        cleanLine = qtyMatch[2].trim();
+      }
+    }
+
+    const priceMatch = cleanLine.match(/^(.*?)(?:[\s:|=]+)(?:rp\.?\s*)?([\d.,]{3,})$/i);
+    if (priceMatch) {
+      const rawName = priceMatch[1].replace(/^[0-9\s\-.*#]+/, "").trim();
+      const rawPrice = priceMatch[2].replace(/\./g, "").replace(/,/g, "");
+      const priceNum = parseInt(rawPrice, 10);
+
+      const hasLetters = /[a-zA-Z]/.test(rawName);
+      if (hasLetters && rawName.length >= 2 && !isNaN(priceNum) && priceNum >= 100 && priceNum <= 50_000_000) {
+        const cleanName = rawName.replace(/[^a-zA-Z0-9\s\-&./+%']/g, "").trim();
+        if (cleanName && !seen.has(cleanName.toLowerCase())) {
+          seen.add(cleanName.toLowerCase());
+          items.push({
+            name: cleanName,
+            price: priceNum,
+            qty: qty && qty > 1 ? qty : undefined,
+          });
+          continue;
+        }
+      }
+    }
+
+    // Pattern 2: Dua baris (baris 1 = nama produk, baris 2 = qty & harga)
+    if (i + 1 < lines.length) {
+      const nextLine = lines[i + 1].trim();
+      const subPriceMatch = nextLine.match(/(?:(\d{1,2})\s*(?:x|pcs)?\s*)?(?:rp\.?\s*)?([\d.,]{3,})$/i);
+      if (subPriceMatch && /[a-zA-Z]{3,}/.test(line)) {
+        const nextPrice = parseInt(subPriceMatch[2].replace(/\./g, "").replace(/,/g, ""), 10);
+        if (!isNaN(nextPrice) && nextPrice >= 100 && nextPrice <= 50_000_000) {
+          const cleanName = line.replace(/[^a-zA-Z0-9\s\-&./+%']/g, "").trim();
+          if (cleanName && !seen.has(cleanName.toLowerCase()) && !nonItemKeywords.some((kw) => cleanName.toLowerCase().startsWith(kw))) {
+            const nextQty = subPriceMatch[1] ? parseInt(subPriceMatch[1], 10) : undefined;
+            seen.add(cleanName.toLowerCase());
+            items.push({
+              name: cleanName,
+              price: nextPrice,
+              qty: nextQty && nextQty > 1 ? nextQty : undefined,
+            });
+            i++; // lewati baris harga
+            continue;
+          }
+        }
+      }
+    }
+  }
+
+  return items;
+}
+
 export function useReceiptOcr() {
   const scanning = ref(false);
   const progress = ref(0);
@@ -216,6 +321,7 @@ export function useReceiptOcr() {
       const total = parseTotal(rawText);
       const date = parseDate(rawText);
       const storeName = parseStoreName(rawText);
+      const items = parseReceiptItems(rawText);
 
       // Step 4: Hitung apakah confident
       // Confident = Tesseract confidence >= threshold DAN total berhasil ditemukan
@@ -228,6 +334,7 @@ export function useReceiptOcr() {
         date,
         confidence,
         isConfident,
+        items,
       };
 
       progress.value = 100;

@@ -33,8 +33,37 @@ function formatDate(d: string) {
     />
 
     <div class="flex-1 min-w-0">
-      <p class="text-[14px] font-semibold text-ink truncate">{{ name }}</p>
-      <p class="text-[12px] text-ink-muted truncate">{{ formatDate(tx.occurredAt) }}</p>
+      <div class="flex items-center gap-1.5 mb-0.5">
+        <p class="text-[14px] font-semibold text-ink truncate">{{ name }}</p>
+        <span
+          v-if="tx.isOcr || tx.receiptUrl"
+          class="badge-receipt"
+          title="Transaksi dibuat dari scan struk"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="m9 9 3-3 3 3"/>
+            <path d="M12 6v9"/>
+            <path d="M9 15h6"/>
+          </svg>
+          Struk
+        </span>
+        <span
+          v-else
+          class="badge-manual"
+          title="Transaksi diinput manual"
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          Manual
+        </span>
+      </div>
+      <p class="text-[12px] text-ink-muted truncate">
+        {{ formatDate(tx.occurredAt) }}
+        <span v-if="tx.note">• {{ tx.note }}</span>
+      </p>
     </div>
 
     <div class="text-right flex-shrink-0">
@@ -50,3 +79,36 @@ function formatDate(d: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.badge-receipt {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1.5px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.badge-manual {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1.5px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+</style>
+

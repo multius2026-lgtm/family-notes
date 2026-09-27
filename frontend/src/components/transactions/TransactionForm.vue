@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useMasterDataStore } from "@/stores/masterData";
 import CategoryPicker from "./CategoryPicker.vue";
-import type { PeriodType, TransactionType } from "@/types";
+import type { PeriodType, TransactionType, ReceiptItem } from "@/types";
 import { PERIOD_LABEL } from "@/types";
 
 export interface TxFormState {
@@ -13,6 +13,9 @@ export interface TxFormState {
   expenseCategoryId: string | null;
   note: string;
   occurredAt: string;
+  receiptUrl?: string | null;
+  isOcr?: boolean;
+  receiptItems?: ReceiptItem[] | null;
 }
 
 const form = defineModel<TxFormState>({ required: true });

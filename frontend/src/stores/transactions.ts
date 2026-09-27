@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { supabase } from "@/lib/supabase";
-import type { Transaction, PeriodType, TransactionType } from "@/types";
+import type { Transaction, PeriodType, TransactionType, ReceiptItem } from "@/types";
 
 interface NewTransactionInput {
   type: TransactionType;
@@ -10,6 +10,9 @@ interface NewTransactionInput {
   expenseCategoryId?: string;
   note?: string;
   occurredAt: string;
+  receiptUrl?: string | null;
+  isOcr?: boolean;
+  receiptItems?: ReceiptItem[] | null;
 }
 
 function mapRow(row: any): Transaction {
@@ -24,6 +27,9 @@ function mapRow(row: any): Transaction {
     note: row.note,
     occurredAt: row.occurred_at,
     createdAt: row.created_at,
+    receiptUrl: row.receipt_url ?? null,
+    isOcr: Boolean(row.is_ocr),
+    receiptItems: row.receipt_items ?? null,
     incomeSource: row.income_sources
       ? { id: row.income_sources.id, name: row.income_sources.name, icon: row.income_sources.icon, defaultPeriodType: row.income_sources.default_period_type, isDefault: row.income_sources.is_default }
       : null,
@@ -80,6 +86,9 @@ export const useTransactionsStore = defineStore("transactions", {
           expense_category_id: input.expenseCategoryId ?? null,
           note: input.note ?? null,
           occurred_at: input.occurredAt,
+          receipt_url: input.receiptUrl ?? null,
+          is_ocr: Boolean(input.isOcr),
+          receipt_items: input.receiptItems ?? null,
         })
         .select(`
           *,
@@ -103,6 +112,9 @@ export const useTransactionsStore = defineStore("transactions", {
       if (input.expenseCategoryId !== undefined) updates.expense_category_id = input.expenseCategoryId;
       if (input.note !== undefined) updates.note = input.note;
       if (input.occurredAt !== undefined) updates.occurred_at = input.occurredAt;
+      if (input.receiptUrl !== undefined) updates.receipt_url = input.receiptUrl;
+      if (input.isOcr !== undefined) updates.is_ocr = input.isOcr;
+      if (input.receiptItems !== undefined) updates.receipt_items = input.receiptItems;
 
       const { data, error } = await supabase
         .from("transactions")
